@@ -5,8 +5,9 @@
  */
 
 /*
- * Raw fork(2) for __clone_for_fork().  The kernel sets x1 to 1 in the
- * child; clear x0 there so the child sees 0, as vfork.S does.
+ * Raw fork(2) for __clone_for_fork().  On arm64 the child comes back with
+ * x0 and x1 both 0.  Mask x0 with x1 - 1 as FreeBSD's own stub does, so the
+ * child sees 0 even if the kernel puts 1 in x1.
  */
 
 #include <private/bionic_asm.h>
@@ -15,9 +16,8 @@ ENTRY_PRIVATE(__freebsd_fork)
 	mov	x8, SYS_fork
 	svc	#0
 	b.cs	__set_errno_from_freebsd
-	cbz	x1, 1f
-	mov	x0, #0
-1:
+	sub	x1, x1, #1
+	and	x0, x0, x1
 	ret
 END(__freebsd_fork)
 

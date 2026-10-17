@@ -58,7 +58,8 @@ ENTRY_WEAK_FOR_NATIVE_BRIDGE(vfork)
 
 #if defined(__FreeBSD__)
     // FreeBSD has vfork(2). With stack MTE, fork(2) makes vfork() act like
-    // fork(), as below. In the child the kernel returns 1 in x1.
+    // fork(), as below. The child comes back with x0 0; the mask with
+    // x1 - 1 is the one in FreeBSD's own stub.
     mov     x8, SYS_vfork
 #if !__has_feature(hwaddress_sanitizer)
     adrp    x1, __libc_memtag_stack
@@ -69,8 +70,9 @@ ENTRY_WEAK_FOR_NATIVE_BRIDGE(vfork)
 1:
     svc     #0
     b.cs    L(not_child)
-    cbz     x1, L(not_child)
-    mov     x0, #0
+    sub     x1, x1, #1
+    and     x0, x0, x1
+    cbnz    x0, L(not_child)
     ret
 #else
     mov     x0, #SIGCHLD
