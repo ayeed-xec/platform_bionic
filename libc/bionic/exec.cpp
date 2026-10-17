@@ -175,9 +175,18 @@ int execvpe(const char* name, char* const* argv, char* const* envp) {
   return -1;
 }
 
+#if defined(__FreeBSD__)
+extern "C" int __fexecve(int, char* const*, char* const*);
+
+// FreeBSD has fexecve(2), so there is no need for /proc/self/fd.
+int fexecve(int fd, char* const* argv, char* const* envp) {
+  return __fexecve(fd, argv, envp);
+}
+#else
 int fexecve(int fd, char* const* argv, char* const* envp) {
   // execveat with AT_EMPTY_PATH (>= 3.19) seems to offer no advantages.
   execve(FdPath(fd).c_str(), argv, envp);
   if (errno == ENOENT) errno = EBADF;
   return -1;
 }
+#endif

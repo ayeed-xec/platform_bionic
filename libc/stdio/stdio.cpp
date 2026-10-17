@@ -454,6 +454,15 @@ FILE* fdopen(int fd, const char* mode) {
   return __FILE_init(__sfp(), fd, flags);
 }
 
+#if defined(__FreeBSD__)
+// FreeBSD reopens the file of a descriptor with openat(fd, "", O_EMPTY_PATH),
+// without /proc/self/fd. The file exists, and O_EMPTY_PATH rejects O_CREAT.
+static int freopen_open(const char* file, int old_fd, int flags) {
+  if (file != nullptr) return open(file, flags, DEFFILEMODE);
+  return openat(old_fd, "", (flags & ~(O_CREAT | O_EXCL)) | O_EMPTY_PATH);
+}
+#endif
+
 FILE* freopen(const char* file, const char* mode, FILE* fp) {
   CHECK_FP(fp);
   ScopedFileLock sfl(fp);
@@ -469,8 +478,12 @@ FILE* freopen(const char* file, const char* mode, FILE* fp) {
   // Linux is quite restrictive about what changes you can make with F_SETFL,
   // and in particular won't let you touch the access bits. It's easiest and
   // most effective to just rely on /proc/self/fd/...
+#if defined(__FreeBSD__)
+  int old_fd = fp->_file;
+#else
   FdPath fd_path(fp->_file);
   if (file == nullptr) file = fd_path.c_str();
+#endif
 
   int mode_flags;
   int flags = __sflags(mode, &mode_flags);
@@ -505,13 +518,21 @@ FILE* freopen(const char* file, const char* mode, FILE* fp) {
   }
 
   // Get a new descriptor to refer to the new file.
+#if defined(__FreeBSD__)
+  int fd = freopen_open(file, old_fd, mode_flags);
+#else
   int fd = open(file, mode_flags, DEFFILEMODE);
+#endif
   if (fd < 0 && isopen) {
     // If out of fd's close the old one and try again.
     if (errno == ENFILE || errno == EMFILE) {
       (*fp->_close)(fp->_cookie);
       isopen = 0;
+#if defined(__FreeBSD__)
+      fd = freopen_open(file, old_fd, mode_flags);
+#else
       fd = open(file, mode_flags, DEFFILEMODE);
+#endif
     }
   }
 

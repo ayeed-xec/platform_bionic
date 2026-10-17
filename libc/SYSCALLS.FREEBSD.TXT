@@ -56,6 +56,7 @@ faccessat(int, const char*, int, int)               arm64  E  faccessat
 fchmodat(int, const char*, mode_t, int)             arm64  E  fchmodat
 __getcwd(char*, size_t)                             arm64  N  getcwd
 execve(const char*, char* const*, char* const*)     arm64  E  execve
+__fexecve:fexecve(int, char* const*, char* const*)  arm64  F  -
 wait4(pid_t, int*, int, struct rusage*)             arm64  E  wait4
 __wait6:wait6(idtype_t, id_t, int*, int, void*, siginfo_t*)  arm64  N  waitid
 __ppoll:ppoll(struct pollfd*, unsigned int, const struct timespec*, const sigset_t*)  arm64  E  ppoll
