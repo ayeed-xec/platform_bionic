@@ -24,3 +24,6 @@
 #define issetugid() 0
 
 #define __compiler_membar() __asm __volatile(" " : : : "memory")
+
+#define __weak_reference(sym, alias) \
+    extern __typeof(sym) alias __attribute__((__weak__, __alias__(#sym)))
