@@ -34,7 +34,6 @@
  */
 
 #include <sys/cdefs.h>
-#include <linux/personality.h>
 
 __BEGIN_DECLS
 

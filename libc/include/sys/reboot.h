@@ -34,20 +34,11 @@
  */
 
 #include <sys/cdefs.h>
-#include <linux/reboot.h>
+#include <bits/freebsd/reboot.h>
 
 __BEGIN_DECLS
 
-/** The glibc name for the reboot() flag `LINUX_REBOOT_CMD_RESTART`. */
-#define RB_AUTOBOOT LINUX_REBOOT_CMD_RESTART
-/** The glibc name for the reboot() flag `LINUX_REBOOT_CMD_HALT`. */
-#define RB_HALT_SYSTEM LINUX_REBOOT_CMD_HALT
-/** The glibc name for the reboot() flag `LINUX_REBOOT_CMD_CAD_ON`. */
-#define RB_ENABLE_CAD LINUX_REBOOT_CMD_CAD_ON
-/** The glibc name for the reboot() flag `LINUX_REBOOT_CMD_CAD_OFF`. */
-#define RB_DISABLE_CAD LINUX_REBOOT_CMD_CAD_OFF
-/** The glibc name for the reboot() flag `LINUX_REBOOT_CMD_POWER_OFF`. */
-#define RB_POWER_OFF LINUX_REBOOT_CMD_POWER_OFF
+/* The RB_* values are in <bits/freebsd/reboot.h>. */
 
 /**
  * [reboot(2)](https://man7.org/linux/man-pages/man2/reboot.2.html) reboots the device.

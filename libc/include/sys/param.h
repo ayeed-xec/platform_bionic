@@ -37,7 +37,7 @@
 
 #include <endian.h>
 #include <limits.h>
-#include <linux/param.h>
+#include <bits/freebsd/param.h>
 
 __BEGIN_DECLS
 

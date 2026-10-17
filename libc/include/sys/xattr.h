@@ -35,7 +35,7 @@
 
 #include <sys/cdefs.h>
 
-#include <linux/xattr.h>
+#include <bits/freebsd/xattr.h>
 #include <sys/types.h>
 
 __BEGIN_DECLS

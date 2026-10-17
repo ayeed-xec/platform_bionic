@@ -37,8 +37,7 @@
 #include <stddef.h>
 
 #include <bits/timespec.h>
-#include <linux/sched.h>
-#include <linux/sched/types.h>
+#include <bits/freebsd/sched.h>
 
 __BEGIN_DECLS
 

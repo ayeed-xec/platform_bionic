@@ -35,7 +35,7 @@
 
 #include <sys/cdefs.h>
 
-#include <linux/prctl.h>
+#include <bits/freebsd/prctl.h>
 
 __BEGIN_DECLS
 

@@ -36,7 +36,7 @@
 #include <sys/cdefs.h>
 #include <sys/types.h>
 
-#include <linux/random.h>
+#include <bits/freebsd/random.h>
 
 #include <bits/getentropy.h>
 

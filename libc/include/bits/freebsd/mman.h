@@ -5,10 +5,11 @@
  */
 
 /*
- * mmap(2) values.  The kernel reads PROT_*, MAP_*, MS_*, MCL_* and MFD_*,
- * so they have the values of FreeBSD sys/sys/mman.h; abi_check.c checks
- * them.  libc translates MADV_*, MREMAP_* and MLOCK_* (ADR 0002
- * decision 1.3), so they keep the Android values.
+ * mmap(2) values.  The kernel reads PROT_*, MAP_*, MS_*, MCL_*, MFD_* and
+ * the minherit(2) INHERIT_* values, so they have the values of FreeBSD
+ * sys/sys/mman.h; abi_check.c checks them.  libc translates MADV_*,
+ * MREMAP_* and MLOCK_* (ADR 0002 decision 1.3), so they keep the Android
+ * values.
  */
 
 #pragma once
@@ -20,6 +21,13 @@
 #define	PROT_WRITE		0x02
 #define	PROT_EXEC		0x04
 #define	PROT_MAX(prot)		((prot) << 16)
+/*
+ * FreeBSD has no MTE mappings and no PROT_GROWSDOWN.  These keep the Android
+ * values: mmap(2) and mprotect(2) reject them with EINVAL.  bionic uses them
+ * only for MTE, and the kernel never sets HWCAP2_MTE.
+ */
+#define	PROT_MTE		0x20
+#define	PROT_GROWSDOWN		0x01000000
 
 #define	MAP_SHARED		0x0001
 #define	MAP_PRIVATE		0x0002
@@ -38,6 +46,21 @@
 #define	MAP_FIXED_NOREPLACE	(MAP_FIXED | MAP_EXCL)
 #define	MAP_NORESERVE		0	/* FreeBSD reserves no swap. */
 #define	MAP_POPULATE		0	/* A hint only. */
+
+/* The FreeBSD madvise(2) values, for the translation in libc. */
+#define	__FREEBSD_MADV_NORMAL		0
+#define	__FREEBSD_MADV_RANDOM		1
+#define	__FREEBSD_MADV_SEQUENTIAL	2
+#define	__FREEBSD_MADV_WILLNEED		3
+#define	__FREEBSD_MADV_DONTNEED		4
+#define	__FREEBSD_MADV_FREE		5
+#define	__FREEBSD_MADV_NOCORE		8
+#define	__FREEBSD_MADV_CORE		9
+
+#define	INHERIT_SHARE		0
+#define	INHERIT_COPY		1
+#define	INHERIT_NONE		2
+#define	INHERIT_ZERO		3
 
 #define	MS_SYNC			0x0000
 #define	MS_ASYNC		0x0001

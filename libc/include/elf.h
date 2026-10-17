@@ -30,30 +30,29 @@
 
 #include <sys/cdefs.h>
 
-#include <linux/elf.h>
-#include <linux/elf-em.h>
-#undef EI_PAD
+#include <stdint.h>
 
 #include <bits/auxvec.h>
 #include <bits/elf_common.h>
+#include <bits/freebsd/elf.h>
 
 __BEGIN_DECLS
 
 /* http://www.sco.com/developers/gabi/latest/ch4.intro.html */
-typedef __u64 Elf32_Xword;
-typedef __s64 Elf32_Sxword;
+typedef uint64_t Elf32_Xword;
+typedef int64_t Elf32_Sxword;
 
 typedef struct {
-  __u32 a_type;
+  uint32_t a_type;
   union {
-    __u32 a_val;
+    uint32_t a_val;
   } a_un;
 } Elf32_auxv_t;
 
 typedef struct {
-  __u64 a_type;
+  uint64_t a_type;
   union {
-    __u64 a_val;
+    uint64_t a_val;
   } a_un;
 } Elf64_auxv_t;
 
@@ -100,8 +99,8 @@ typedef struct {
   Elf64_Half m_stride;
 } Elf64_Move;
 
-typedef __u16 Elf32_Section;
-typedef __u16 Elf64_Section;
+typedef uint16_t Elf32_Section;
+typedef uint16_t Elf64_Section;
 
 typedef struct {
   Elf32_Half si_boundto;

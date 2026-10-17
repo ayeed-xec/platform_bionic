@@ -72,7 +72,7 @@
 #define	EBFONT	59
 #define	ENOSTR	60
 #define	ENODATA	61
-#define	ENOTIME	62
+#define	ETIME	62
 #define	ENOSR	63
 #define	ENONET	64
 #define	ENOPKG	65

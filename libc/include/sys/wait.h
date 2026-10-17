@@ -33,7 +33,7 @@
 #include <bits/wait.h>
 #include <sys/types.h>
 #include <sys/resource.h>
-#include <linux/wait.h>
+#include <bits/freebsd/wait.h>
 #include <signal.h>
 
 __BEGIN_DECLS

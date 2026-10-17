@@ -535,9 +535,9 @@ typedef struct {
 #define	PT_TLS		7	/* Thread local storage segment */
 #define	PT_LOOS		0x60000000	/* First OS-specific. */
 #define	PT_SUNW_UNWIND	0x6464e550	/* amd64 UNWIND program header */
-// android-removed: #define	PT_GNU_EH_FRAME	0x6474e550
-// android-removed: #define	PT_GNU_STACK	0x6474e551
-// android-removed: #define	PT_GNU_RELRO	0x6474e552
+#define	PT_GNU_EH_FRAME	0x6474e550
+#define	PT_GNU_STACK	0x6474e551
+#define	PT_GNU_RELRO	0x6474e552
 #define	PT_DUMP_DELTA	0x6fb5d000	/* va->pa map for kernel dumps
 					   (currently arm). */
 #define	PT_LOSUNW	0x6ffffffa
@@ -844,7 +844,7 @@ typedef struct {
 
 #define	GNU_PROPERTY_AARCH64_FEATURE_1_AND	0xc0000000
 
-// android-removed: #define	GNU_PROPERTY_AARCH64_FEATURE_1_BTI	0x00000001
+#define	GNU_PROPERTY_AARCH64_FEATURE_1_BTI	0x00000001
 #define	GNU_PROPERTY_AARCH64_FEATURE_1_PAC	0x00000002
 
 #define	GNU_PROPERTY_X86_FEATURE_1_AND		0xc0000002

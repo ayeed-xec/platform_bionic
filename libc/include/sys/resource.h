@@ -32,7 +32,7 @@
 #include <sys/cdefs.h>
 #include <sys/types.h>
 
-#include <linux/resource.h>
+#include <bits/freebsd/resource.h>
 
 __BEGIN_DECLS
 
@@ -40,8 +40,6 @@ __BEGIN_DECLS
 #define RLIM_SAVED_CUR RLIM_INFINITY
 #define RLIM_SAVED_MAX RLIM_INFINITY
 
-typedef unsigned long rlim_t;
-typedef unsigned long long rlim64_t;
 
 int getrlimit(int __resource, struct rlimit* _Nonnull __limit);
 int setrlimit(int __resource, const struct rlimit* _Nonnull __limit);

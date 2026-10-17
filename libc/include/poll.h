@@ -34,7 +34,7 @@
  */
 
 #include <sys/cdefs.h>
-#include <linux/poll.h>
+#include <bits/freebsd/poll.h>
 #include <signal.h> /* For sigset_t. */
 #include <time.h> /* For timespec. */
 

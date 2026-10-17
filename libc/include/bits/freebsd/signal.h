@@ -71,6 +71,9 @@
 #define	SIG_UNBLOCK	2
 #define	SIG_SETMASK	3
 
+/* For sigqueue(2): the pid argument is a thread ID. */
+#define	__SIGQUEUE_TID	0x80000000
+
 typedef void (*__sighandler_t)(int);
 
 #define	SIG_DFL		((__sighandler_t)0)

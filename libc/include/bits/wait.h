@@ -35,7 +35,7 @@
 
 #include <sys/cdefs.h>
 
-#include <linux/wait.h>
+#include <bits/freebsd/wait.h>
 
 __BEGIN_DECLS
 
@@ -58,10 +58,10 @@ __BEGIN_DECLS
 #define WIFSTOPPED(__status) (((__status) & 0xff) == 0x7f)
 
 /** Returns true if the process was terminated by a signal. */
-#define WIFSIGNALED(__status) (WTERMSIG((__status)+1) >= 2)
+#define WIFSIGNALED(__status) (WTERMSIG((__status)+1) >= 2 && (__status) != 0x13)
 
 /** Returns true if the process was resumed . */
-#define WIFCONTINUED(__status) ((__status) == 0xffff)
+#define WIFCONTINUED(__status) ((__status) == 0x13)
 
 /** Constructs a status value from the given exit code and signal number. */
 #define W_EXITCODE(__exit_code, __signal_number) ((__exit_code) << 8 | (__signal_number))
