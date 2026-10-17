@@ -16,6 +16,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "platform/bionic/malloc.h"
+#include "bionic/malloc_heapprofd.h"
 #include "platform/bionic/page.h"
 #include "private/bionic_allocator.h"
 #include "private/bionic_globals.h"
@@ -97,3 +99,12 @@ extern "C" size_t malloc_usable_size(const void* ptr) {
 }
 
 __LIBC_HIDDEN__ void __libc_init_malloc(libc_globals*) {}
+
+// There is no malloc dispatch (malloc_common_dynamic.cpp): android_mallopt()
+// has no options, and there is no heapprofd.
+extern "C" bool android_mallopt(int, void*, size_t) {
+  errno = ENOTSUP;
+  return false;
+}
+
+void HandleHeapprofdSignal() {}

@@ -20,10 +20,17 @@
 
 #define REPLACE_GETOPT
 
+#if !defined(__FreeBSD__)
 /* FreeBSD has this, but we can't really implement it correctly on Linux. */
 #define issetugid() 0
+#endif
 
 #define __compiler_membar() __asm __volatile(" " : : : "memory")
+
+/* FreeBSD's name for the unfortified function; bionic's fortify is separate. */
+#define __ssp_real(fn) fn
+
+#define __noinline __attribute__((__noinline__))
 
 #define __weak_reference(sym, alias) \
     extern __typeof(sym) alias __attribute__((__weak__, __alias__(#sym)))
