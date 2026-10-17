@@ -1,0 +1,98 @@
+#
+# Copyright (c) 2026 <copyright holder>
+#
+# SPDX-License-Identifier: BSD-2-Clause
+#
+# System call stubs of bionic-freebsd: the FreeBSD counterpart of
+# SYSCALLS.TXT.  tools/parity/parse_syscalls_master.py checks each row
+# against the pinned FreeBSD sys/kern/syscalls.master and writes the stubs.
+#
+# Each row has bionic's SYSCALLS.TXT format plus two columns:
+#
+#     func_name[|alias_list][:syscall_name](parameter_list) arch_list kind parity
+#
+# syscall_name is a FreeBSD system call.  The parameter list uses the
+# FreeBSD argument order and count.
+#
+# kind:
+#     E  same name and core behavior as the Linux system call
+#     N  a FreeBSD system call with another name does the work
+#     L  libc emulation on native primitives (no stub)
+#     G  no FreeBSD equivalent yet (no stub)
+#     F  FreeBSD-only system call that bionic-freebsd uses (parity "-")
+#
+# parity is the Linux system call of docs/specs/syscall-parity.md.
+#
+# v0: the first 60 rows, for a static program and for threads (M1).
+
+# Process and I/O.
+_exit|_Exit(int)                                    arm64  N  exit_group
+read(int, void*, size_t)                            arm64  E  read
+write(int, const void*, size_t)                     arm64  E  write
+readv(int, const struct iovec*, int)                arm64  E  readv
+writev(int, const struct iovec*, int)               arm64  E  writev
+pread64|pread:pread(int, void*, size_t, off_t)      arm64  N  pread64
+pwrite64|pwrite:pwrite(int, const void*, size_t, off_t)  arm64  N  pwrite64
+__openat:openat(int, const char*, int, mode_t)      arm64  E  openat
+close(int)                                          arm64  E  close
+lseek|lseek64(int, off_t, int)                      arm64  E  lseek
+__ioctl:ioctl(int, int, void*)                      arm64  E  ioctl
+__fcntl:fcntl(int, int, void*)                      arm64  E  fcntl
+fstat64|fstat:fstat(int, struct stat*)              arm64  E  fstat
+fstatat64|fstatat:fstatat(int, const char*, struct stat*, int)  arm64  N  newfstatat
+dup(int)                                            arm64  E  dup
+pipe2(int*, int)                                    arm64  E  pipe2
+unlinkat(int, const char*, int)                     arm64  E  unlinkat
+mkdirat(int, const char*, mode_t)                   arm64  E  mkdirat
+readlinkat(int, const char*, char*, size_t)         arm64  E  readlinkat
+faccessat(int, const char*, int, int)               arm64  E  faccessat
+__getcwd(char*, size_t)                             arm64  N  getcwd
+execve(const char*, char* const*, char* const*)     arm64  E  execve
+wait4(pid_t, int*, int, struct rusage*)             arm64  E  wait4
+__ppoll:ppoll(struct pollfd*, unsigned int, const struct timespec*, const sigset_t*)  arm64  E  ppoll
+
+# Memory.
+mmap|mmap64(void*, size_t, int, int, int, off_t)    arm64  E  mmap
+munmap(void*, size_t)                               arm64  E  munmap
+mprotect(const void*, size_t, int)                  arm64  E  mprotect
+__madvise:madvise(void*, size_t, int)               arm64  E  madvise
+
+# Credentials and limits.
+__getpid:getpid()                                   arm64  E  getpid
+getppid()                                           arm64  E  getppid
+getuid()                                            arm64  E  getuid
+geteuid()                                           arm64  E  geteuid
+getgid()                                            arm64  E  getgid
+getegid()                                           arm64  E  getegid
+issetugid()                                         arm64  F  -
+getrlimit|getrlimit64(int, struct rlimit*)          arm64  E  getrlimit
+setrlimit|setrlimit64(int, const struct rlimit*)    arm64  E  setrlimit
+__sysctl(const int*, unsigned int, void*, size_t*, const void*, size_t)  arm64  F  -
+__sysctlbyname(const char*, size_t, void*, size_t*, const void*, size_t)  arm64  F  -
+getrandom(void*, size_t, unsigned int)              arm64  E  getrandom
+
+# Threads and futex.
+__thr_new:thr_new(struct thr_param*, int)           arm64  F  -
+__thr_exit:thr_exit(long*)                          arm64  N  exit
+__thr_self:thr_self(long*)                          arm64  N  gettid
+__thr_kill:thr_kill(long, int)                      arm64  F  -
+__thr_kill2:thr_kill2(pid_t, long, int)             arm64  N  tgkill
+__thr_set_name:thr_set_name(long, const char*)      arm64  F  -
+__umtx_op:_umtx_op(void*, int, unsigned long, void*, void*)  arm64  F  -
+__cpuset_getaffinity:cpuset_getaffinity(int, int, id_t, size_t, void*)  arm64  N  sched_getaffinity
+sched_yield()                                       arm64  E  sched_yield
+
+# Signals.
+kill(pid_t, int)                                    arm64  E  kill
+__sigaction:sigaction(int, const struct sigaction*, struct sigaction*)  arm64  N  rt_sigaction
+__sigprocmask:sigprocmask(int, const sigset_t*, sigset_t*)  arm64  N  rt_sigprocmask
+__sigpending:sigpending(sigset_t*)                  arm64  N  rt_sigpending
+__sigsuspend:sigsuspend(const sigset_t*)            arm64  N  rt_sigsuspend
+__sigtimedwait:sigtimedwait(const sigset_t*, siginfo_t*, const struct timespec*)  arm64  N  rt_sigtimedwait
+sigaltstack(const stack_t*, stack_t*)               arm64  E  sigaltstack
+
+# Time.
+__clock_gettime:clock_gettime(clockid_t, struct timespec*)  arm64  E  clock_gettime
+__clock_getres:clock_getres(clockid_t, struct timespec*)    arm64  E  clock_getres
+__clock_nanosleep:clock_nanosleep(clockid_t, int, const struct timespec*, struct timespec*)  arm64  E  clock_nanosleep
+nanosleep(const struct timespec*, struct timespec*)  arm64  E  nanosleep

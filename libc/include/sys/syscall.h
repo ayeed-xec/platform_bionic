@@ -31,8 +31,7 @@
 
 #include <sys/cdefs.h>
 
-#include <asm/unistd.h> /* Linux kernel __NR_* names. */
-#include <bits/glibc-syscalls.h> /* glibc-compatible SYS_* aliases. */
+#include <bits/freebsd/syscall_numbers.h> /* FreeBSD SYS_* numbers. */
 
 /* The syscall function itself is declared in <unistd.h>, not here. */
 

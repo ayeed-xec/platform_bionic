@@ -31,7 +31,7 @@
 /* This should be valid for assembler too: https://github.com/android/ndk/issues/1422 */
 #include <sys/cdefs.h>
 
-#include <asm/unistd.h> /* For system call numbers. */
+#include <bits/freebsd/syscall_numbers.h> /* For system call numbers. */
 #define MAX_ERRNO 4095  /* For recognizing system call error returns. */
 
 #define __bionic_asm_custom_entry(f)
