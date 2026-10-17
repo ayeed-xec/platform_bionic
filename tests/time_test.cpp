@@ -964,8 +964,14 @@ TEST(time, timer_delete_from_timer_thread) {
 }
 
 // Musl doesn't define __NR_clock_gettime on 32-bit architectures.
-#if !defined(__NR_clock_gettime)
-#define __NR_clock_gettime __NR_clock_gettime32
+// bionic-freebsd has no __NR_* names: FreeBSD's clock_gettime(2) takes the
+// same arguments.
+#if defined(__FreeBSD__)
+#define CLOCK_GETTIME_SYSCALL SYS_clock_gettime
+#elif !defined(__NR_clock_gettime)
+#define CLOCK_GETTIME_SYSCALL __NR_clock_gettime32
+#else
+#define CLOCK_GETTIME_SYSCALL __NR_clock_gettime
 #endif
 
 TEST(time, clock_gettime) {
@@ -974,7 +980,7 @@ TEST(time, clock_gettime) {
   timespec ts1;
   timespec ts2;
   ASSERT_EQ(0, clock_gettime(CLOCK_MONOTONIC, &ts0));
-  ASSERT_EQ(0, syscall(__NR_clock_gettime, CLOCK_MONOTONIC, &ts1));
+  ASSERT_EQ(0, syscall(CLOCK_GETTIME_SYSCALL, CLOCK_MONOTONIC, &ts1));
   ASSERT_EQ(0, clock_gettime(CLOCK_MONOTONIC, &ts2));
 
   // Check we have a nice monotonic timestamp sandwich.

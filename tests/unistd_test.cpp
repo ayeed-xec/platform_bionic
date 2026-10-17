@@ -25,7 +25,9 @@
 #include <libgen.h>
 #include <limits.h>
 #include <stdint.h>
+#if !defined(__FreeBSD__)  // No capabilities yet (parity K6).
 #include <sys/capability.h>
+#endif
 #include <sys/param.h>
 #include <sys/resource.h>
 #include <sys/syscall.h>
@@ -253,11 +255,15 @@ TEST(UNISTD_TEST, read_EBADF) {
 }
 
 TEST(UNISTD_TEST, syscall_long) {
+#if defined(__FreeBSD__)
+  GTEST_SKIP() << "bionic-freebsd: FreeBSD arm64 has no brk(2)";
+#else
   // Check that syscall(3) correctly returns long results.
   // https://code.google.com/p/android/issues/detail?id=73952
   // We assume that the break is > 4GiB, but this is potentially flaky.
   uintptr_t p = reinterpret_cast<uintptr_t>(sbrk(0));
   ASSERT_EQ(p, static_cast<uintptr_t>(syscall(__NR_brk, 0)));
+#endif
 }
 
 TEST(UNISTD_TEST, alarm) {
@@ -585,7 +591,7 @@ TEST(UNISTD_TEST, vfork) {
 
   pid_t cached_pid;
   ASSERT_TRUE(self->get_cached_pid(&cached_pid));
-  ASSERT_EQ(syscall(__NR_getpid), cached_pid);
+  ASSERT_EQ(syscall(SYS_getpid), cached_pid);
   ASSERT_FALSE(self->is_vforked());
 
   pid_t rc = vfork();
@@ -606,7 +612,7 @@ TEST(UNISTD_TEST, vfork) {
     _exit(0);
   } else {
     ASSERT_TRUE(self->get_cached_pid(&cached_pid));
-    ASSERT_EQ(syscall(__NR_getpid), cached_pid);
+    ASSERT_EQ(syscall(SYS_getpid), cached_pid);
     ASSERT_FALSE(self->is_vforked());
 
     int status;
@@ -620,7 +626,7 @@ TEST(UNISTD_TEST, vfork) {
 
 static void AssertGetPidCorrect() {
   // The loop is just to make manual testing/debugging with strace easier.
-  pid_t getpid_syscall_result = syscall(__NR_getpid);
+  pid_t getpid_syscall_result = syscall(SYS_getpid);
   for (size_t i = 0; i < 128; ++i) {
     ASSERT_EQ(getpid_syscall_result, getpid());
   }
@@ -628,7 +634,7 @@ static void AssertGetPidCorrect() {
 
 static void TestGetPidWorksAfterFork(int (*fork_fn)(), void (*exit_fn)(int)) {
   pid_t parent_pid = getpid();
-  ASSERT_EQ(syscall(__NR_getpid), parent_pid);
+  ASSERT_EQ(syscall(SYS_getpid), parent_pid);
 
   pid_t fork_result = fork_fn();
   ASSERT_NE(fork_result, -1);
@@ -654,7 +660,7 @@ static __attribute__((__noinline__)) pid_t GetTidForTest() {
 
 static void AssertGetTidCorrect() {
   // The loop is just to make manual testing/debugging with strace easier.
-  pid_t gettid_syscall_result = syscall(__NR_gettid);
+  pid_t gettid_syscall_result = RawGettid();
   for (size_t i = 0; i < 128; ++i) {
     ASSERT_EQ(gettid_syscall_result, GetTidForTest());
   }
@@ -662,15 +668,15 @@ static void AssertGetTidCorrect() {
 
 static void TestGetTidWorksAfterFork(int (*fork_fn)(), void (*exit_fn)(int)) {
   pid_t parent_tid = GetTidForTest();
-  ASSERT_EQ(syscall(__NR_gettid), parent_tid);
+  ASSERT_EQ(RawGettid(), parent_tid);
 
   pid_t fork_result = fork_fn();
   ASSERT_NE(fork_result, -1);
   if (fork_result == 0) {
     // We're the child.
-    EXPECT_EQ(syscall(__NR_getpid), syscall(__NR_gettid));
-    EXPECT_EQ(getpid(), GetTidForTest()) << "real tid is " << syscall(__NR_gettid)
-                                         << ", pid is " << syscall(__NR_getpid);
+    EXPECT_EQ(syscall(SYS_getpid), RawGettid());
+    EXPECT_EQ(getpid(), GetTidForTest()) << "real tid is " << RawGettid()
+                                         << ", pid is " << syscall(SYS_getpid);
     ASSERT_NO_FATAL_FAILURE(AssertGetTidCorrect());
     exit_fn(123);
   } else {
@@ -741,7 +747,7 @@ static int GetPidWorksInCloneStartRoutine(void*) {
 
 TEST(UNISTD_TEST, getpid_works_after_clone) {
   pid_t parent_pid = getpid();
-  ASSERT_EQ(syscall(__NR_getpid), parent_pid);
+  ASSERT_EQ(syscall(SYS_getpid), parent_pid);
 
   int clone_result = CloneStartRoutine(GetPidWorksInCloneStartRoutine);
   ASSERT_NE(clone_result, -1);
@@ -758,7 +764,7 @@ static int GetTidWorksInCloneStartRoutine(void*) {
 
 TEST(UNISTD_TEST, gettid_works_after_clone) {
   pid_t parent_tid = GetTidForTest();
-  ASSERT_EQ(syscall(__NR_gettid), parent_tid);
+  ASSERT_EQ(RawGettid(), parent_tid);
 
   int clone_result = CloneStartRoutine(GetTidWorksInCloneStartRoutine);
   ASSERT_NE(clone_result, -1);
@@ -1509,6 +1515,9 @@ TEST(UNISTD_TEST, getdomainname) {
 }
 
 TEST(UNISTD_TEST, setdomainname) {
+#if defined(__FreeBSD__)
+  GTEST_SKIP() << "bionic-freebsd: no capabilities yet (parity K6)";
+#else
   __user_cap_header_struct header = {.version = _LINUX_CAPABILITY_VERSION_3};
 
   __user_cap_data_struct old_caps[_LINUX_CAPABILITY_U32S_3];
@@ -1531,6 +1540,7 @@ TEST(UNISTD_TEST, setdomainname) {
   if (has_admin) {
     ASSERT_EQ(0, capset(&header, &old_caps[0])) << "failed to restore admin privileges";
   }
+#endif
 }
 
 TEST(UNISTD_TEST, execve_failure) {
@@ -1745,10 +1755,14 @@ TEST(UNISTD_TEST, fexecve_args) {
 }
 
 TEST(UNISTD_TEST, getlogin_r) {
+#if defined(__FreeBSD__)
+  GTEST_SKIP() << "bionic-freebsd: tier 0 has no passwd database (grp_pwd.cpp)";
+#else
   char buf[LOGIN_NAME_MAX] = {};
   EXPECT_EQ(ERANGE, getlogin_r(buf, 0));
   EXPECT_EQ(0, getlogin_r(buf, sizeof(buf)));
   EXPECT_STREQ(getlogin(), buf);
+#endif
 }
 
 TEST(UNISTD_TEST, swab) {

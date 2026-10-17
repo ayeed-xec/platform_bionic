@@ -78,6 +78,20 @@ static inline bool running_with_native_bridge() {
 
 #define SKIP_WITH_NATIVE_BRIDGE if (running_with_native_bridge()) GTEST_SKIP()
 
+#include <sys/syscall.h>
+#include <unistd.h>
+
+// The kernel's id of the calling thread, without libc's cache.
+static inline pid_t RawGettid() {
+#if defined(__FreeBSD__)
+  long tid;
+  syscall(SYS_thr_self, &tid);
+  return static_cast<pid_t>(tid);
+#else
+  return syscall(__NR_gettid);
+#endif
+}
+
 #if defined(__linux__)
 
 #include <sys/sysmacros.h>

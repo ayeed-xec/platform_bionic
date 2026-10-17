@@ -620,7 +620,11 @@ TEST(pthread, pthread_kill__exited_thread) {
                               nullptr));
 
   pid_t tid = tid_promise.get_future().get();
+#if defined(__FreeBSD__)
+  while (TEMP_FAILURE_RETRY(tgkill(getpid(), tid, 0)) != -1) {
+#else
   while (TEMP_FAILURE_RETRY(syscall(__NR_tgkill, getpid(), tid, 0)) != -1) {
+#endif
     continue;
   }
   ASSERT_ERRNO(ESRCH);
@@ -1836,6 +1840,9 @@ TEST(pthread, pthread_cond_clockwait_invalid) {
 }
 
 TEST(pthread, pthread_attr_getstack__main_thread) {
+#if defined(__FreeBSD__)
+  GTEST_SKIP() << "bionic-freebsd: the main thread's tid is not the pid, and there is no /proc/self/maps";
+#else
   // This test is only meaningful for the main thread, so make sure we're running on it!
   ASSERT_EQ(getpid(), syscall(__NR_gettid));
 
@@ -1922,6 +1929,7 @@ TEST(pthread, pthread_attr_getstack__main_thread) {
   EXPECT_EQ(stack_size, stack_size2);
   ASSERT_EQ(6666U, stack_size);
 #endif
+#endif
 }
 
 struct GetStackSignalHandlerArg {
@@ -1934,7 +1942,7 @@ struct GetStackSignalHandlerArg {
 
 static GetStackSignalHandlerArg getstack_signal_handler_arg;
 
-static void getstack_signal_handler(int sig) {
+[[maybe_unused]] static void getstack_signal_handler(int sig) {
   ASSERT_EQ(SIGUSR1, sig);
   // Use sleep() to make current thread be switched out by the kernel to provoke the error.
   sleep(1);
@@ -1964,6 +1972,9 @@ static void getstack_signal_handler(int sig) {
 // the wrong map with [stack]. This test verifies that when the above situation happens, the main
 // thread's stack is found correctly.
 TEST(pthread, pthread_attr_getstack_in_signal_handler) {
+#if defined(__FreeBSD__)
+  GTEST_SKIP() << "bionic-freebsd: the main thread's tid is not the pid";
+#else
   // This test is only meaningful for the main thread, so make sure we're running on it!
   ASSERT_EQ(getpid(), syscall(__NR_gettid));
 
@@ -1995,6 +2006,7 @@ TEST(pthread, pthread_attr_getstack_in_signal_handler) {
 
   ASSERT_EQ(0, sigaltstack(&oss, nullptr));
   ASSERT_EQ(0, munmap(sig_stack, sig_stack_size));
+#endif
 }
 
 static void pthread_attr_getstack_18908062_helper(void*) {
@@ -2790,7 +2802,7 @@ static void signal_handler_snprintf() {
   ASSERT_GT(snprintf(buf, sizeof(buf), "/proc/%d/status", getpid()), 0);
 }
 
-static void SignalHandlerOnAltStack(int signo, siginfo_t*, void*) {
+[[maybe_unused]] static void SignalHandlerOnAltStack(int signo, siginfo_t*, void*) {
   ASSERT_EQ(SIGUSR1, signo);
   signal_handler_backtrace();
   signal_handler_logging();
@@ -2798,10 +2810,14 @@ static void SignalHandlerOnAltStack(int signo, siginfo_t*, void*) {
 }
 
 TEST(pthread, big_enough_signal_stack) {
+#if defined(__FreeBSD__)
+  GTEST_SKIP() << "bionic-freebsd: tier 0 has no libunwind";
+#else
   signal_handler_on_altstack_done = false;
   ScopedSignalHandler handler(SIGUSR1, SignalHandlerOnAltStack, SA_SIGINFO | SA_ONSTACK);
   kill(getpid(), SIGUSR1);
   ASSERT_TRUE(signal_handler_on_altstack_done);
+#endif
 }
 
 TEST(pthread, pthread_barrierattr_smoke) {

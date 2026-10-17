@@ -48,7 +48,9 @@
 // pollution such as BLOCK_SIZE which conflicts with lots of user code.
 // Important to check that we have matching definitions.
 // There's no _MAX to test that we have all the constants, sadly.
+#if !defined(__FreeBSD__)  // bionic-freebsd has no Linux UAPI headers.
 #include <linux/fs.h>
+#endif
 
 #if defined(NOFORTIFY)
 #define STDIO_TEST stdio_nofortify
@@ -3005,7 +3007,9 @@ TEST(STDIO_TEST, SEEK_macros) {
   ASSERT_EQ(3, SEEK_DATA);
   ASSERT_EQ(4, SEEK_HOLE);
   // So we'll notice if Linux grows another constant in <linux/fs.h>...
+#if defined(SEEK_MAX)
   ASSERT_EQ(SEEK_MAX, SEEK_HOLE);
+#endif
 }
 
 TEST(STDIO_TEST, rename) {
@@ -3966,7 +3970,7 @@ TEST_F(STDIO_DEATHTEST, swscanf_invalid_w_or_wf_width) {
 TEST(STDIO_TEST, printf_lc_0) {
   // https://austingroupbugs.net/view.php?id=1647
   char buf[BUFSIZ];
-  EXPECT_EQ(3, snprintf(buf, sizeof(buf), "<%lc>", L'\0'));
+  EXPECT_EQ(3, snprintf(buf, sizeof(buf), "<%lc>", static_cast<wint_t>(L'\0')));
   EXPECT_TRUE(!memcmp(buf, "<\0>", 3));
 }
 

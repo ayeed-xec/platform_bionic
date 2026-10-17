@@ -299,6 +299,9 @@ TEST(signal, sigaction64_SIGRTMIN) {
   TestSigAction(sigaction64, sigaddset64, SIGRTMIN);
 }
 
+// bionic-freebsd: these tests read the kernel's signal mask as a 64-bit
+// Linux sigset. FreeBSD's sigset_t has 128 bits, and SIGRTMIN is 65.
+#if !defined(__FreeBSD__)
 static void ClearSignalMask() {
   uint64_t sigset = 0;
   SignalSetAdd(&sigset, __SIGRTMIN);
@@ -538,6 +541,7 @@ TEST(signal, sigsetmask_filter) {
   });
 #endif
 }
+#endif  // !__FreeBSD__
 
 TEST(signal, sys_signame) {
 #if defined(__BIONIC__)
@@ -761,6 +765,9 @@ TEST(signal, sigtimedwait_timeout) {
 
 #if defined(__BIONIC__)
 TEST(signal, rt_tgsigqueueinfo) {
+#if defined(__FreeBSD__)
+  GTEST_SKIP() << "bionic-freebsd: rt_tgsigqueueinfo has no FreeBSD equivalent";
+#else
   // Test whether rt_tgsigqueueinfo allows sending arbitrary si_code values to self.
   // If this fails, your kernel needs commit 66dd34a to be backported.
   static constexpr char error_msg[] =
@@ -787,6 +794,7 @@ TEST(signal, rt_tgsigqueueinfo) {
   ASSERT_EQ(sent.si_code, received.si_code) << "rt_tgsigqueueinfo modified si_code, expected "
                                             << sent.si_code << ", received " << received.si_code
                                             << error_msg;
+#endif
 }
 #endif
 
@@ -794,7 +802,8 @@ TEST(signal, sigset_size) {
   // The setjmp implementations assume that sigset_t can fit in a long.
   // This is true because the 32-bit ABIs have broken rt signal support,
   // but the 64-bit ABIs both have a SIGRTMAX defined as 64.
-#if defined(__BIONIC__)
+// bionic-freebsd: FreeBSD's sigset_t has 128 bits.
+#if defined(__BIONIC__) && !defined(__FreeBSD__)
   static_assert(sizeof(sigset_t) <= sizeof(long), "sigset_t doesn't fit in a long");
 #endif
   static_assert(sizeof(sigset64_t)*8 >= 64, "sigset64_t too small for real-time signals");
