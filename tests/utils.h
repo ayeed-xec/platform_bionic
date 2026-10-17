@@ -34,6 +34,12 @@
 #include <sys/system_properties.h>
 #endif
 
+#if defined(__FreeBSD__)
+#include <errno.h>
+#include <string.h>
+#include <sys/sysctl.h>
+#endif
+
 #if defined(__BIONIC__)
 #include <bionic/macros.h>
 #else
@@ -44,6 +50,7 @@
 #include <iomanip>
 #include <string>
 #include <regex>
+#include <vector>
 
 #include <android-base/file.h>
 #include <android-base/macros.h>
@@ -168,6 +175,33 @@ static inline void WaitUntilThreadSleep(std::atomic<pid_t>& tid) {
   while (tid == 0) {
     usleep(1000);
   }
+#if defined(__FreeBSD__)
+  // No /proc: kern.proc.pid with KERN_PROC_INC_THREAD gives one kinfo_proc
+  // for each thread of the process.
+  int mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_PID | KERN_PROC_INC_THREAD, getpid()};
+  std::vector<kinfo_proc> threads;
+  while (true) {
+    size_t size = 0;
+    ASSERT_EQ(0, sysctl(mib, 4, nullptr, &size, nullptr, 0)) << strerror(errno);
+    // Leave room for threads that start before the second call.
+    threads.resize(size / sizeof(kinfo_proc) + 4);
+    size = threads.size() * sizeof(kinfo_proc);
+    if (sysctl(mib, 4, threads.data(), &size, nullptr, 0) == -1) {
+      ASSERT_EQ(ENOMEM, errno);
+      continue;
+    }
+    const kinfo_proc* thread = nullptr;
+    for (size_t i = 0; i < size / sizeof(kinfo_proc); i++) {
+      ASSERT_EQ(static_cast<int>(sizeof(kinfo_proc)), threads[i].ki_structsize);
+      if (threads[i].ki_tid == tid) thread = &threads[i];
+    }
+    ASSERT_NE(nullptr, thread) << "no thread " << tid.load();
+    if (thread->ki_stat == SSLEEP) {
+      break;
+    }
+    usleep(1000);
+  }
+#else
   std::string filename = android::base::StringPrintf("/proc/%d/stat", tid.load());
   std::regex regex {R"(\s+S\s+)"};
 
@@ -179,6 +213,7 @@ static inline void WaitUntilThreadSleep(std::atomic<pid_t>& tid) {
     }
     usleep(1000);
   }
+#endif
 }
 
 static inline void AssertChildExited(int pid, int expected_exit_status,
