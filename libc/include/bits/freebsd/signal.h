@@ -95,6 +95,9 @@ union sigval {
 	void		*sival_ptr;
 };
 
+/* The Linux name, which Android code uses. */
+typedef union sigval	sigval_t;
+
 typedef struct siginfo {
 	int		si_signo;
 	int		si_errno;

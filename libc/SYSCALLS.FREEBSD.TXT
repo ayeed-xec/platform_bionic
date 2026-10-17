@@ -44,19 +44,30 @@ fstatat64|fstatat:fstatat(int, const char*, struct stat*, int)  arm64  N  newfst
 __statfs:statfs(const char*, struct __freebsd_statfs*)  arm64  N  statfs
 __fstatfs:fstatfs(int, struct __freebsd_statfs*)    arm64  N  fstatfs
 __dup:dup(int)                                      arm64  E  dup
-pipe2(int*, int)                                    arm64  E  pipe2
+__pipe2:pipe2(int*, int)                            arm64  E  pipe2
 unlinkat(int, const char*, int)                     arm64  E  unlinkat
 ftruncate|ftruncate64(int, off_t)                   arm64  E  ftruncate
+truncate|truncate64(const char*, off_t)             arm64  E  truncate
 mkdirat(int, const char*, mode_t)                   arm64  E  mkdirat
 readlinkat(int, const char*, char*, size_t)         arm64  E  readlinkat
+__getdirentries:getdirentries(int, char*, size_t, off_t*)  arm64  N  getdents64
 __sys___realpathat:__realpathat(int, const char*, char*, size_t, int)  arm64  F  -
 faccessat(int, const char*, int, int)               arm64  E  faccessat
+fchmodat(int, const char*, mode_t, int)             arm64  E  fchmodat
 __getcwd(char*, size_t)                             arm64  N  getcwd
 execve(const char*, char* const*, char* const*)     arm64  E  execve
 wait4(pid_t, int*, int, struct rusage*)             arm64  E  wait4
+__wait6:wait6(idtype_t, id_t, int*, int, void*, siginfo_t*)  arm64  N  waitid
 __ppoll:ppoll(struct pollfd*, unsigned int, const struct timespec*, const sigset_t*)  arm64  E  ppoll
 __pselect:pselect(int, fd_set*, fd_set*, fd_set*, const struct timespec*, const sigset_t*)  arm64  N  pselect6
 umask(mode_t)                                       arm64  E  umask
+chdir(const char*)                                  arm64  E  chdir
+fchdir(int)                                         arm64  E  fchdir
+fsync(int)                                          arm64  E  fsync
+fdatasync(int)                                      arm64  E  fdatasync
+close_range(unsigned int, unsigned int, int)        arm64  E  close_range
+copy_file_range(int, off_t*, int, off_t*, size_t, unsigned int)  arm64  E  copy_file_range
+renameat2(int, const char*, int, const char*, unsigned int)  arm64  E  renameat2
 
 # Memory.
 mmap|mmap64(void*, size_t, int, int, int, off_t)    arm64  E  mmap
@@ -78,6 +89,7 @@ issetugid()                                         arm64  F  -
 __procctl:procctl(int, id_t, int, void*)            arm64  F  -
 getrlimit|getrlimit64(int, struct rlimit*)          arm64  E  getrlimit
 setrlimit|setrlimit64(int, const struct rlimit*)    arm64  E  setrlimit
+setpriority(int, id_t, int)                         arm64  E  setpriority
 __sysctl(const int*, unsigned int, void*, size_t*, const void*, size_t)  arm64  F  -
 __sysctlbyname(const char*, size_t, void*, size_t*, const void*, size_t)  arm64  F  -
 getrandom(void*, size_t, unsigned int)              arm64  E  getrandom
@@ -91,10 +103,14 @@ tgkill:thr_kill2(pid_t, int, int)                   arm64  N  tgkill
 __thr_set_name:thr_set_name(long, const char*)      arm64  F  -
 __umtx_op|_umtx_op:_umtx_op(void*, int, unsigned long, void*, void*)  arm64  F  -
 __cpuset_getaffinity:cpuset_getaffinity(int, int, id_t, size_t, void*)  arm64  N  sched_getaffinity
+__cpuset_setaffinity:cpuset_setaffinity(int, int, id_t, size_t, const void*)  arm64  N  sched_setaffinity
 sched_yield()                                       arm64  E  sched_yield
 sched_getscheduler(pid_t)                           arm64  E  sched_getscheduler
 sched_getparam(pid_t, struct sched_param*)          arm64  E  sched_getparam
+sched_setparam(pid_t, const struct sched_param*)    arm64  E  sched_setparam
 sched_setscheduler(pid_t, int, const struct sched_param*)  arm64  E  sched_setscheduler
+sched_get_priority_max(int)                         arm64  E  sched_get_priority_max
+sched_get_priority_min(int)                         arm64  E  sched_get_priority_min
 
 # Sockets.
 __socket:socket(int, int, int)                      arm64  E  socket
@@ -103,6 +119,7 @@ __accept4:accept4(int, struct sockaddr*, socklen_t*, int)  arm64  E  accept4
 __sendto:sendto(int, const void*, size_t, int, const struct sockaddr*, socklen_t)  arm64  E  sendto
 __sendmsg:sendmsg(int, const struct msghdr*, int)  arm64  E  sendmsg
 recvfrom(int, void*, size_t, int, struct sockaddr*, socklen_t*)  arm64  E  recvfrom
+shutdown(int, int)                                  arm64  E  shutdown
 # Signals.
 kill(pid_t, int)                                    arm64  E  kill
 __sigaction:sigaction(int, const struct sigaction*, struct sigaction*)  arm64  N  rt_sigaction
@@ -120,4 +137,12 @@ __clock_gettime:clock_gettime(clockid_t, struct timespec*)  arm64  E  clock_gett
 __clock_getres:clock_getres(clockid_t, struct timespec*)    arm64  E  clock_getres
 __clock_nanosleep:clock_nanosleep(clockid_t, int, const struct timespec*, struct timespec*)  arm64  E  clock_nanosleep
 nanosleep(const struct timespec*, struct timespec*)  arm64  E  nanosleep
+clock_settime(clockid_t, const struct timespec*)    arm64  E  clock_settime
+setitimer(int, const struct itimerval*, struct itimerval*)  arm64  E  setitimer
+getitimer(int, struct itimerval*)                   arm64  E  getitimer
+__timer_create:ktimer_create(clockid_t, struct sigevent*, int*)  arm64  N  timer_create
+__timer_delete:ktimer_delete(int)                   arm64  N  timer_delete
+__timer_getoverrun:ktimer_getoverrun(int)           arm64  N  timer_getoverrun
+__timer_gettime:ktimer_gettime(int, struct itimerspec*)  arm64  N  timer_gettime
+__timer_settime:ktimer_settime(int, int, const struct itimerspec*, struct itimerspec*)  arm64  N  timer_settime
 __gettimeofday:gettimeofday(struct timeval*, struct timezone*)  arm64  E  gettimeofday

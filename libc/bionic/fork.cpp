@@ -34,9 +34,26 @@
 #include "private/bionic_fdtrack.h"
 #include "pthread_internal.h"
 
+#if defined(__FreeBSD__)
+extern "C" int __freebsd_fork();
+extern "C" int __thr_self(long* tid);
+extern "C" pid_t __getpid();
+#endif
+
 __BIONIC_WEAK_FOR_NATIVE_BRIDGE_INLINE
 int __clone_for_fork() {
   pthread_internal_t* self = __get_thread();
+#if defined(__FreeBSD__)
+  // bionic-freebsd: FreeBSD's fork(2). The child's thread has a new id.
+  int result = __freebsd_fork();
+  if (result == 0) {
+    long tid;
+    __thr_self(&tid);
+    self->tid = static_cast<pid_t>(tid);
+    self->set_cached_pid(__getpid());
+  }
+  return result;
+#else
 
   int result = clone(nullptr, nullptr, (CLONE_CHILD_SETTID | CLONE_CHILD_CLEARTID | SIGCHLD),
                      nullptr, nullptr, nullptr, &(self->tid));
@@ -48,6 +65,7 @@ int __clone_for_fork() {
   }
 
   return result;
+#endif
 }
 
 int _Fork() {

@@ -30,6 +30,41 @@
 #include <sched.h>
 #include <string.h>
 
+#if defined(__FreeBSD__)
+
+#include <errno.h>
+#include <stdint.h>
+
+// bionic-freebsd: FreeBSD has cpuset_getaffinity(2) and cpuset_setaffinity(2) in place of the
+// Linux system calls, so this file has sched_setaffinity too. The values are from FreeBSD
+// sys/sys/cpuset.h: CPU_LEVEL_WHICH is the mask of the thread itself, and CPU_WHICH_TIDPID takes
+// a thread id or a process id (id -1 is the calling thread). FreeBSD id_t is 64 bits wide.
+static constexpr int kCpuLevelWhich = 3;
+static constexpr int kCpuWhichTidPid = 9;
+
+extern "C" int __cpuset_getaffinity(int, int, int64_t, size_t, void*);
+extern "C" int __cpuset_setaffinity(int, int, int64_t, size_t, const void*);
+
+// Linux reports a set that is too small, and an empty set, as EINVAL. FreeBSD uses ERANGE and
+// EDEADLK.
+static int fix_errno(int rc) {
+  if (rc == -1 && (errno == ERANGE || errno == EDEADLK)) errno = EINVAL;
+  return rc;
+}
+
+// The kernel clears the bytes of the set that it does not write.
+int sched_getaffinity(pid_t pid, size_t set_size, cpu_set_t* set) {
+  return fix_errno(__cpuset_getaffinity(kCpuLevelWhich, kCpuWhichTidPid, pid == 0 ? -1 : pid,
+                                        set_size, set));
+}
+
+int sched_setaffinity(pid_t pid, size_t set_size, const cpu_set_t* set) {
+  return fix_errno(__cpuset_setaffinity(kCpuLevelWhich, kCpuWhichTidPid, pid == 0 ? -1 : pid,
+                                        set_size, set));
+}
+
+#else
+
 extern "C" int __sched_getaffinity(pid_t, size_t, cpu_set_t*);
 
 int sched_getaffinity(pid_t pid, size_t set_size, cpu_set_t* set) {
@@ -43,3 +78,5 @@ int sched_getaffinity(pid_t pid, size_t set_size, cpu_set_t* set) {
   memset(reinterpret_cast<char*>(set) + rc, 0, set_size - rc);
   return 0;
 }
+
+#endif

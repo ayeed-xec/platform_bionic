@@ -29,7 +29,12 @@
 #include <sys/wait.h>
 #include <stddef.h>
 
+#if defined(__FreeBSD__)
+extern "C" pid_t __wait6(idtype_t which, id_t id, int* status, int options, void* wrusage,
+                         siginfo_t* info);
+#else
 extern "C" int __waitid(idtype_t which, id_t id, siginfo_t* info, int options, struct rusage* ru);
+#endif
 
 pid_t wait(int* status) {
   return wait4(-1, status, 0, nullptr);
@@ -40,6 +45,11 @@ pid_t waitpid(pid_t pid, int* status, int options) {
 }
 
 int waitid(idtype_t which, id_t id, siginfo_t* info, int options) {
+#if defined(__FreeBSD__)
+  // bionic-freebsd: FreeBSD's wait6(2) returns the pid, and waitid() returns 0.
+  return (__wait6(which, id, nullptr, options, nullptr, info) == -1) ? -1 : 0;
+#else
   // The system call takes an optional struct rusage that we don't need.
   return __waitid(which, id, info, options, nullptr);
+#endif
 }

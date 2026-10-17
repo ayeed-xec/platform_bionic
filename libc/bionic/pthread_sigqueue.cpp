@@ -34,6 +34,10 @@
 
 #include "private/bionic_defs.h"
 #include "private/ErrnoRestorer.h"
+
+#if defined(__FreeBSD__)
+extern "C" int __rt_tgsigqueueinfo(pid_t, pid_t, int, void*);
+#endif
 #include "pthread_internal.h"
 
 __BIONIC_WEAK_FOR_NATIVE_BRIDGE
@@ -51,5 +55,10 @@ int pthread_sigqueue(pthread_t t, int sig, const union sigval value) {
   siginfo.si_uid = getuid();
   siginfo.si_value = value;
 
+#if defined(__FreeBSD__)
+  // bionic-freebsd: no FreeBSD equivalent yet (freebsd/no_equivalent.c).
+  return __rt_tgsigqueueinfo(pid, tid, sig, &siginfo) ? errno : 0;
+#else
   return syscall(__NR_rt_tgsigqueueinfo, pid, tid, sig, &siginfo) ? errno : 0;
+#endif
 }

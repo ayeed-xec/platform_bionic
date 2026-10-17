@@ -64,12 +64,31 @@ __BEGIN_DECLS
 #define __DIRENT64_INO_T uint64_t /* Historical accident. */
 #endif
 
+#if defined(__FreeBSD__)
+/*
+ * bionic-freebsd: the layout of FreeBSD sys/dirent.h, which getdirentries(2)
+ * writes (ADR 0002). The first field is FreeBSD's d_fileno, with the
+ * Android name d_ino.
+ */
+#define __DIRENT64_BODY \
+    ino_t d_ino; \
+    off64_t d_off; \
+    unsigned short d_reclen; \
+    unsigned char d_type; \
+    unsigned char d_pad0; \
+    unsigned short d_namlen; \
+    unsigned short d_pad1; \
+    char d_name[256]; \
+
+#else
 #define __DIRENT64_BODY \
     __DIRENT64_INO_T d_ino; \
     off64_t d_off; \
     unsigned short d_reclen; \
     unsigned char d_type; \
     char d_name[256]; \
+
+#endif
 
 /** The structure returned by readdir(). Identical to dirent64 on Android. */
 struct dirent { __DIRENT64_BODY };
@@ -80,10 +99,15 @@ struct dirent64 { __DIRENT64_BODY };
 #undef __DIRENT64_INO_T
 
 /* glibc compatibility. */
+#if defined(__FreeBSD__)
+#define _DIRENT_HAVE_D_NAMLEN
+#else
 #undef _DIRENT_HAVE_D_NAMLEN /* Linux doesn't have a d_namlen field. */
+#endif
 #define _DIRENT_HAVE_D_RECLEN
 #define _DIRENT_HAVE_D_OFF
 #define _DIRENT_HAVE_D_TYPE
+
 
 #define d_fileno d_ino
 

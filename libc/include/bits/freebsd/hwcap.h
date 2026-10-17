@@ -20,5 +20,6 @@
 
 #define	HWCAP2_BTI		(1 << 17)
 #define	HWCAP2_MTE		(1 << 18)
+#define	HWCAP2_SME		(1 << 23)
 #define	HWCAP2_MOPS		(1UL << 43)
 #endif

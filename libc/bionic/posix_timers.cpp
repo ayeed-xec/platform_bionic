@@ -37,6 +37,11 @@
 #include "private/bionic_lock.h"
 
 // System calls.
+#if defined(__FreeBSD__)
+// bionic-freebsd: the kernel timer id of FreeBSD's ktimer_create(2).
+typedef int __kernel_timer_t;
+#endif
+
 extern "C" int __rt_sigprocmask(int, const sigset64_t*, sigset64_t*, size_t);
 extern "C" int __rt_sigtimedwait(const sigset64_t*, siginfo_t*, const timespec*, size_t);
 extern "C" int __timer_create(clockid_t, sigevent*, __kernel_timer_t*);

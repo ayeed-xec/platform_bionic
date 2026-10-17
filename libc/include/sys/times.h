@@ -35,7 +35,17 @@
 
 #include <sys/cdefs.h>
 #include <sys/types.h>
-#include <linux/times.h>
+
+/*
+ * bionic-freebsd: FreeBSD has no times(2), and libc computes times(). So
+ * struct tms is not a kernel structure, and it keeps the Android layout.
+ */
+struct tms {
+  clock_t tms_utime;
+  clock_t tms_stime;
+  clock_t tms_cutime;
+  clock_t tms_cstime;
+};
 
 __BEGIN_DECLS
 
