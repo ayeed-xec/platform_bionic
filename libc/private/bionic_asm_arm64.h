@@ -78,8 +78,17 @@
 #define NT_MEMTAG_HEAP 4
 #define NT_MEMTAG_STACK 8
 
+#if defined(__FreeBSD__)
+// FreeBSD sets the carry flag on failure and returns a positive errno in x0.
+#define DO_SYSCALL_RETURN \
+    b.cs    __set_errno_from_freebsd ; \
+    ret \
+
+#else
 #define DO_SYSCALL_RETURN \
     cmp     x0, #-MAX_ERRNO ; \
     b.hs    __set_errno_internal ; \
     ret \
+
+#endif
 

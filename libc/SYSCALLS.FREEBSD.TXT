@@ -23,7 +23,8 @@
 #
 # parity is the Linux system call of docs/specs/syscall-parity.md.
 #
-# v0: the first 60 rows, for a static program and for threads (M1).
+# v1: 65 rows, for a static program with bionic's startup and stdio, and for
+# threads (M1).
 
 # Process and I/O.
 _exit|_Exit(int)                                    arm64  N  exit_group
@@ -34,7 +35,7 @@ writev(int, const struct iovec*, int)               arm64  E  writev
 pread64|pread:pread(int, void*, size_t, off_t)      arm64  N  pread64
 pwrite64|pwrite:pwrite(int, const void*, size_t, off_t)  arm64  N  pwrite64
 __openat:openat(int, const char*, int, mode_t)      arm64  E  openat
-close(int)                                          arm64  E  close
+__close:close(int)                                  arm64  E  close
 lseek|lseek64(int, off_t, int)                      arm64  E  lseek
 __ioctl:ioctl(int, int, void*)                      arm64  E  ioctl
 __fcntl:fcntl(int, int, void*)                      arm64  E  fcntl
@@ -43,6 +44,7 @@ fstatat64|fstatat:fstatat(int, const char*, struct stat*, int)  arm64  N  newfst
 dup(int)                                            arm64  E  dup
 pipe2(int*, int)                                    arm64  E  pipe2
 unlinkat(int, const char*, int)                     arm64  E  unlinkat
+ftruncate|ftruncate64(int, off_t)                   arm64  E  ftruncate
 mkdirat(int, const char*, mode_t)                   arm64  E  mkdirat
 readlinkat(int, const char*, char*, size_t)         arm64  E  readlinkat
 faccessat(int, const char*, int, int)               arm64  E  faccessat
@@ -56,6 +58,7 @@ mmap|mmap64(void*, size_t, int, int, int, off_t)    arm64  E  mmap
 munmap(void*, size_t)                               arm64  E  munmap
 mprotect(const void*, size_t, int)                  arm64  E  mprotect
 __madvise:madvise(void*, size_t, int)               arm64  E  madvise
+minherit(void*, size_t, int)                        arm64  F  -
 
 # Credentials and limits.
 __getpid:getpid()                                   arm64  E  getpid
@@ -81,11 +84,15 @@ __thr_set_name:thr_set_name(long, const char*)      arm64  F  -
 __umtx_op:_umtx_op(void*, int, unsigned long, void*, void*)  arm64  F  -
 __cpuset_getaffinity:cpuset_getaffinity(int, int, id_t, size_t, void*)  arm64  N  sched_getaffinity
 sched_yield()                                       arm64  E  sched_yield
+sched_getscheduler(pid_t)                           arm64  E  sched_getscheduler
+sched_getparam(pid_t, struct sched_param*)          arm64  E  sched_getparam
+sched_setscheduler(pid_t, int, const struct sched_param*)  arm64  E  sched_setscheduler
 
 # Signals.
 kill(pid_t, int)                                    arm64  E  kill
 __sigaction:sigaction(int, const struct sigaction*, struct sigaction*)  arm64  N  rt_sigaction
-__sigprocmask:sigprocmask(int, const sigset_t*, sigset_t*)  arm64  N  rt_sigprocmask
+# bionic passes a fourth argument (the sigset size); the kernel does not read it.
+__rt_sigprocmask:sigprocmask(int, const sigset_t*, sigset_t*)  arm64  N  rt_sigprocmask
 __sigpending:sigpending(sigset_t*)                  arm64  N  rt_sigpending
 __sigsuspend:sigsuspend(const sigset_t*)            arm64  N  rt_sigsuspend
 __sigtimedwait:sigtimedwait(const sigset_t*, siginfo_t*, const struct timespec*)  arm64  N  rt_sigtimedwait
