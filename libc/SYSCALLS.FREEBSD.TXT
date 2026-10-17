@@ -138,6 +138,7 @@ __clock_getres:clock_getres(clockid_t, struct timespec*)    arm64  E  clock_getr
 __clock_nanosleep:clock_nanosleep(clockid_t, int, const struct timespec*, struct timespec*)  arm64  E  clock_nanosleep
 nanosleep(const struct timespec*, struct timespec*)  arm64  E  nanosleep
 clock_settime(clockid_t, const struct timespec*)    arm64  E  clock_settime
+__clock_getcpuclockid2:clock_getcpuclockid2(id_t, int, clockid_t*)  arm64  F  -
 setitimer(int, const struct itimerval*, struct itimerval*)  arm64  E  setitimer
 getitimer(int, struct itimerval*)                   arm64  E  getitimer
 __timer_create:ktimer_create(clockid_t, struct sigevent*, int*)  arm64  N  timer_create

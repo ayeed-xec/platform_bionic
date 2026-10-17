@@ -31,6 +31,15 @@
 
 #include "private/ErrnoRestorer.h"
 
+#if defined(__FreeBSD__)
+extern "C" int __clock_getcpuclockid2(id_t, int, clockid_t*);
+
+// FreeBSD makes the clock id itself, and checks that the process exists.
+int clock_getcpuclockid(pid_t pid, clockid_t* clockid) {
+  ErrnoRestorer errno_restorer;
+  return (__clock_getcpuclockid2(pid, CPUCLOCK_WHICH_PID, clockid) == 0) ? 0 : errno;
+}
+#else
 int clock_getcpuclockid(pid_t pid, clockid_t* clockid) {
   ErrnoRestorer errno_restorer;
 
@@ -48,3 +57,4 @@ int clock_getcpuclockid(pid_t pid, clockid_t* clockid) {
   *clockid = result;
   return 0;
 }
+#endif

@@ -61,8 +61,15 @@
 #define COND_COUNTER_MASK (~COND_FLAGS_MASK)
 
 #define COND_IS_SHARED(c) (((c) & COND_SHARED_MASK) != 0)
+#if defined(__FreeBSD__)
+// CLOCK_MONOTONIC is 4 on FreeBSD, so the clock bit only says "monotonic".
+#define COND_GET_CLOCK(c) (((c) & COND_CLOCK_MASK) ? CLOCK_MONOTONIC : CLOCK_REALTIME)
+#define COND_SET_CLOCK(attr, c) \
+  (((attr) & ~COND_CLOCK_MASK) | ((c) == CLOCK_MONOTONIC ? COND_CLOCK_MASK : 0))
+#else
 #define COND_GET_CLOCK(c) (((c) & COND_CLOCK_MASK) >> 1)
 #define COND_SET_CLOCK(attr, c) ((attr) | (c << 1))
+#endif
 
 int pthread_condattr_init(pthread_condattr_t* attr) {
   *attr = 0;

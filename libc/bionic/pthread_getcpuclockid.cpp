@@ -31,11 +31,24 @@
 #include "private/bionic_defs.h"
 #include "pthread_internal.h"
 
+#if defined(__FreeBSD__)
+#include <sys/time.h>
+
+#include "private/ErrnoRestorer.h"
+
+extern "C" int __clock_getcpuclockid2(id_t, int, clockid_t*);
+#endif
+
 __BIONIC_WEAK_FOR_NATIVE_BRIDGE
 int pthread_getcpuclockid(pthread_t t, clockid_t* clockid) {
   pid_t tid = __pthread_internal_gettid(t, "pthread_getcpuclockid");
   if (tid == -1) return ESRCH;
 
+#if defined(__FreeBSD__)
+  // Not a Linux encoding: FreeBSD makes the clock id from the thread id.
+  ErrnoRestorer errno_restorer;
+  return (__clock_getcpuclockid2(tid, CPUCLOCK_WHICH_TID, clockid) == 0) ? 0 : errno;
+#else
   // The tid is stored in the top bits, but negated.
   clockid_t result = ~static_cast<clockid_t>(tid) << 3;
   // Bits 0 and 1: clock type (0 = CPUCLOCK_PROF, 1 = CPUCLOCK_VIRT, 2 = CPUCLOCK_SCHED).
@@ -45,4 +58,5 @@ int pthread_getcpuclockid(pthread_t t, clockid_t* clockid) {
 
   *clockid = result;
   return 0;
+#endif
 }

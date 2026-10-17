@@ -63,3 +63,7 @@ struct itimerspec {
 
 #define	TIMER_RELTIME		0x0
 #define	TIMER_ABSTIME		0x1
+
+/* The "which" argument of clock_getcpuclockid2(2). */
+#define	CPUCLOCK_WHICH_PID	0
+#define	CPUCLOCK_WHICH_TID	1
