@@ -65,6 +65,11 @@ __END_DECLS
 #include "scudo.h"
 #define Malloc(function)  scudo_svelte_ ## function
 
+#elif defined(__FreeBSD__)
+
+// bionic-freebsd tier 0 (M1): freebsd/malloc_bionic_allocator.cpp is the
+// allocator until the M1 allocator decision.
+
 #else
 
 #include "jemalloc.h"
