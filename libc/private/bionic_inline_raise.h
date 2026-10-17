@@ -34,9 +34,30 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#if defined(__FreeBSD__)
+extern "C" __LIBC_HIDDEN__ long __set_errno_from_freebsd(int error);
+#endif
+
 // An inline version of pthread_sigqueue(pthread_self(), ...), to reduce the number of
 // uninteresting stack frames at the top of a crash.
 static inline __always_inline int inline_raise(int sig, void* value = nullptr) {
+#if defined(__FreeBSD__) && defined(__aarch64__)
+  // sigqueue(2) with __SIGQUEUE_TID queues the signal for one thread, with
+  // SI_QUEUE, as rt_tgsigqueueinfo(2) does. The kernel fills in the siginfo.
+  long tid;
+  syscall(SYS_thr_self, &tid);
+  register long x0 __asm__("x0") = tid;
+  register long x1 __asm__("x1") = sig | __SIGQUEUE_TID;
+  register long x2 __asm__("x2") = reinterpret_cast<long>(value);
+  register long x8 __asm__("x8") = SYS_sigqueue;
+  long failed;
+  __asm__ __volatile__("svc #0\n\tcset %1, cs"
+                       : "+r"(x0), "=r"(failed), "+r"(x1)
+                       : "r"(x2), "r"(x8)
+                       : "memory", "cc");
+  if (failed) return __set_errno_from_freebsd(x0);
+  return 0;
+#else
   // Protect ourselves against stale cached PID/TID values by fetching them via syscall.
   // http://b/37769298
   pid_t pid = syscall(__NR_getpid);
@@ -93,4 +114,5 @@ static inline __always_inline int inline_raise(int sig, void* value = nullptr) {
     return -1;
   }
   return 0;
+#endif
 }

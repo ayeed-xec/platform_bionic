@@ -34,7 +34,19 @@
 extern "C" void __restore_rt(void);
 extern "C" void __restore(void);
 
-#if defined(__LP64__)
+#if defined(__FreeBSD__)
+
+extern "C" int __sigaction(int, const struct sigaction*, struct sigaction*);
+
+// The FreeBSD kernel uses struct sigaction as it is, and a handler returns
+// through the kernel's own signal trampoline, so there is no restorer.
+int sigaction(int signal, const struct sigaction* bionic_new_action, struct sigaction* bionic_old_action) {
+  return __sigaction(signal, bionic_new_action, bionic_old_action);
+}
+
+__strong_alias(sigaction64, sigaction);
+
+#elif defined(__LP64__)
 
 extern "C" int __rt_sigaction(int, const struct __kernel_sigaction*, struct __kernel_sigaction*, size_t);
 
