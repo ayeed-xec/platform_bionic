@@ -1362,7 +1362,7 @@ TEST(UNISTD_TEST, dup2_same) {
   // This isn't true of dup3(2), so we need to manually implement that.
 
   // Equal and valid.
-  int fd = open("/proc/version", O_RDONLY);
+  int fd = open(READ_ONLY_FILE, O_RDONLY);
   ASSERT_TRUE(fd != -1);
   ASSERT_EQ(fd, dup2(fd, fd));
   ASSERT_EQ(0, close(fd)); // Check that dup2 didn't close fd.
@@ -1372,7 +1372,7 @@ TEST(UNISTD_TEST, dup2_same) {
 }
 
 TEST(UNISTD_TEST, dup3) {
-  int fd = open("/proc/version", O_RDONLY);
+  int fd = open(READ_ONLY_FILE, O_RDONLY);
   ASSERT_EQ(666, dup3(fd, 666, 0));
   ASSERT_FALSE(CloseOnExec(666));
   close(666);
@@ -1828,7 +1828,7 @@ TEST(UNISTD_TEST, close_range) {
 #elif defined(ANDROID_HOST_MUSL)
   GTEST_SKIP() << "musl does not have close_range";
 #else   // __GLIBC__
-  int fd = open("/proc/version", O_RDONLY);
+  int fd = open(READ_ONLY_FILE, O_RDONLY);
   ASSERT_GE(fd, 0);
 
   int rc = close_range(fd, fd, 0);

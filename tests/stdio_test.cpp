@@ -1299,7 +1299,7 @@ TEST(STDIO_TEST, getc) {
 }
 
 TEST(STDIO_TEST, putc) {
-  FILE* fp = fopen("/proc/version", "r");
+  FILE* fp = fopen(READ_ONLY_FILE, "r");
   ASSERT_TRUE(fp != nullptr);
   ASSERT_EQ(EOF, putc('x', fp));
   fclose(fp);
@@ -1622,7 +1622,7 @@ TEST(STDIO_TEST, scanf_wscanf_wide_character_class) {
 
 TEST(STDIO_TEST, cantwrite_EBADF) {
   // If we open a file read-only...
-  FILE* fp = fopen("/proc/version", "r");
+  FILE* fp = fopen(READ_ONLY_FILE, "r");
 
   // ...all attempts to write to that file should return failure.
 
@@ -2225,7 +2225,7 @@ TEST(STDIO_TEST, open_memstream_EINVAL) {
 
 TEST(STDIO_TEST, fdopen_add_CLOEXEC) {
   // This fd doesn't have O_CLOEXEC...
-  int fd = open("/proc/version", O_RDONLY);
+  int fd = open(READ_ONLY_FILE, O_RDONLY);
   ASSERT_FALSE(CloseOnExec(fd));
   // ...but the new one does.
   FILE* fp = fdopen(fd, "re");
@@ -2235,7 +2235,7 @@ TEST(STDIO_TEST, fdopen_add_CLOEXEC) {
 
 TEST(STDIO_TEST, fdopen_remove_CLOEXEC) {
   // This fd has O_CLOEXEC...
-  int fd = open("/proc/version", O_RDONLY | O_CLOEXEC);
+  int fd = open(READ_ONLY_FILE, O_RDONLY | O_CLOEXEC);
   ASSERT_TRUE(CloseOnExec(fd));
   // ...but the new one doesn't.
   FILE* fp = fdopen(fd, "r");
@@ -2245,10 +2245,10 @@ TEST(STDIO_TEST, fdopen_remove_CLOEXEC) {
 
 TEST(STDIO_TEST, freopen_add_CLOEXEC) {
   // This FILE* doesn't have O_CLOEXEC...
-  FILE* fp = fopen("/proc/version", "r");
+  FILE* fp = fopen(READ_ONLY_FILE, "r");
   ASSERT_FALSE(CloseOnExec(fileno(fp)));
   // ...but the new one does.
-  fp = freopen("/proc/version", "re", fp);
+  fp = freopen(READ_ONLY_FILE, "re", fp);
   ASSERT_TRUE(CloseOnExec(fileno(fp)));
 
   fclose(fp);
@@ -2256,17 +2256,17 @@ TEST(STDIO_TEST, freopen_add_CLOEXEC) {
 
 TEST(STDIO_TEST, freopen_remove_CLOEXEC) {
   // This FILE* has O_CLOEXEC...
-  FILE* fp = fopen("/proc/version", "re");
+  FILE* fp = fopen(READ_ONLY_FILE, "re");
   ASSERT_TRUE(CloseOnExec(fileno(fp)));
   // ...but the new one doesn't.
-  fp = freopen("/proc/version", "r", fp);
+  fp = freopen(READ_ONLY_FILE, "r", fp);
   ASSERT_FALSE(CloseOnExec(fileno(fp)));
   fclose(fp);
 }
 
 TEST(STDIO_TEST, freopen_null_filename_add_CLOEXEC) {
   // This FILE* doesn't have O_CLOEXEC...
-  FILE* fp = fopen("/proc/version", "r");
+  FILE* fp = fopen(READ_ONLY_FILE, "r");
   ASSERT_FALSE(CloseOnExec(fileno(fp)));
   // ...but the new one does.
   fp = freopen(nullptr, "re", fp);
@@ -2276,7 +2276,7 @@ TEST(STDIO_TEST, freopen_null_filename_add_CLOEXEC) {
 
 TEST(STDIO_TEST, freopen_null_filename_remove_CLOEXEC) {
   // This FILE* has O_CLOEXEC...
-  FILE* fp = fopen("/proc/version", "re");
+  FILE* fp = fopen(READ_ONLY_FILE, "re");
   ASSERT_TRUE(CloseOnExec(fileno(fp)));
   // ...but the new one doesn't.
   fp = freopen(nullptr, "r", fp);
@@ -2285,9 +2285,9 @@ TEST(STDIO_TEST, freopen_null_filename_remove_CLOEXEC) {
 }
 
 TEST(STDIO_TEST, fopen64_freopen64) {
-  FILE* fp = fopen64("/proc/version", "r");
+  FILE* fp = fopen64(READ_ONLY_FILE, "r");
   ASSERT_TRUE(fp != nullptr);
-  fp = freopen64("/proc/version", "re", fp);
+  fp = freopen64(READ_ONLY_FILE, "re", fp);
   ASSERT_TRUE(fp != nullptr);
   fclose(fp);
 }
@@ -2364,21 +2364,21 @@ TEST(STDIO_TEST, fread_from_write_only_stream_fast_path) {
 }
 
 TEST(STDIO_TEST, fwrite_to_read_only_stream) {
-  FILE* fp = fopen("/proc/version", "re");
+  FILE* fp = fopen(READ_ONLY_FILE, "re");
   ASSERT_FALSE(ferror(fp));
   ASSERT_EQ(0U, fwrite("hello", 1, 5, fp));
   ASSERT_TRUE(ferror(fp));
 }
 
 TEST(STDIO_TEST, fputc_to_read_only_stream) {
-  FILE* fp = fopen("/proc/version", "re");
+  FILE* fp = fopen(READ_ONLY_FILE, "re");
   ASSERT_FALSE(ferror(fp));
   ASSERT_EQ(EOF, fputc('x', fp));
   ASSERT_TRUE(ferror(fp));
 }
 
 TEST(STDIO_TEST, fprintf_to_read_only_stream) {
-  FILE* fp = fopen("/proc/version", "re");
+  FILE* fp = fopen(READ_ONLY_FILE, "re");
   ASSERT_FALSE(ferror(fp));
   ASSERT_EQ(-1, fprintf(fp, "%s%d", "hello", 123));
   ASSERT_TRUE(ferror(fp));
@@ -2823,7 +2823,7 @@ TEST(STDIO_TEST, fdopen_append_mode_and_ftell) {
 TEST(STDIO_TEST, freopen_append_mode_and_ftell) {
   TemporaryFile tf;
   SetFileTo(tf.path, "0123456789");
-  FILE* other_fp = fopen("/proc/version", "r");
+  FILE* other_fp = fopen(READ_ONLY_FILE, "r");
   FILE* fp = freopen(tf.path, "a", other_fp);
   EXPECT_EQ(10, ftell(fp));
   ASSERT_EQ(0, fseek(fp, 2, SEEK_SET));
@@ -3086,7 +3086,7 @@ TEST(STDIO_TEST, renameat2_flags) {
 }
 
 TEST(STDIO_TEST, fdopen_failures) {
-  int fd = open("/proc/version", O_RDONLY);
+  int fd = open(READ_ONLY_FILE, O_RDONLY);
   ASSERT_TRUE(fd != -1);
 
   // Nonsense mode.
@@ -3109,14 +3109,14 @@ TEST(STDIO_TEST, fmemopen_invalid_mode) {
 }
 
 TEST(STDIO_TEST, fopen_invalid_mode) {
-  ASSERT_ERRNO_FAILURE(EINVAL, nullptr, fopen("/proc/version", "nonsense"));
+  ASSERT_ERRNO_FAILURE(EINVAL, nullptr, fopen(READ_ONLY_FILE, "nonsense"));
 }
 
 TEST(STDIO_TEST, freopen_invalid_mode) {
-  FILE* fp = fopen("/proc/version", "re");
+  FILE* fp = fopen(READ_ONLY_FILE, "re");
   ASSERT_TRUE(fp != nullptr);
 
-  ASSERT_ERRNO_FAILURE(EINVAL, nullptr, freopen("/proc/version", "nonsense", fp));
+  ASSERT_ERRNO_FAILURE(EINVAL, nullptr, freopen(READ_ONLY_FILE, "nonsense", fp));
 }
 
 TEST(STDIO_TEST, asprintf_smoke) {
@@ -4011,7 +4011,7 @@ TEST(STDIO_TEST, fflush_POSIX_2008) {
   // (without further changing the file offset)".
   // It doesn't look like macOS or glibc actually implement the "discard the unget buffer" part,
   // but all the implementations seem to agree that fflush() should return success at least.
-  FILE* fp = fopen("/proc/version", "r");
+  FILE* fp = fopen(READ_ONLY_FILE, "r");
   ASSERT_TRUE(fp != nullptr);
   ASSERT_EQ(0, fflush(fp));
   fclose(fp);

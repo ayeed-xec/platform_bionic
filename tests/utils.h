@@ -56,9 +56,16 @@
 #define PATH_TO_SYSTEM_LIB "/system/lib/"
 #endif
 
+// A file that the tests can open for reading. FreeBSD has no /proc/version.
+#if defined(__FreeBSD__)
+#define READ_ONLY_FILE "/dev/null"
+#else
+#define READ_ONLY_FILE "/proc/version"
+#endif
+
 #if defined(__GLIBC__)
 #define BIN_DIR "/bin/"
-#else
+#elif !defined(BIN_DIR)
 #define BIN_DIR "/system/bin/"
 #endif
 
