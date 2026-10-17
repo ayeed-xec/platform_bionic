@@ -3660,7 +3660,11 @@ void init_sanitizer_mode(const char *interp ) {
   char* hwasan_env = getenv("LD_HWASAN");
   g_is_hwasan = (bname != nullptr &&
               strcmp(bname, "linker_hwasan64") == 0) ||
+#if defined(__FreeBSD__)
+              (hwasan_env != nullptr && !issetugid() && strcmp(hwasan_env, "1") == 0);
+#else
               (hwasan_env != nullptr && !getauxval(AT_SECURE) && strcmp(hwasan_env, "1") == 0);
+#endif
   __libc_shared_globals()->is_hwasan = g_is_hwasan;
 #endif
 }

@@ -52,20 +52,43 @@ static const char* auxv_name(int at) {
   case AT_EUID: return "AT_EUID";
   case AT_GID: return "AT_GID";
   case AT_EGID: return "AT_EGID";
-  case AT_PLATFORM: return "AT_PLATFORM";
   case AT_HWCAP: return "AT_HWCAP";
+  case AT_HWCAP2: return "AT_HWCAP2";
+  case AT_HWCAP3: return "AT_HWCAP3";
+  case AT_HWCAP4: return "AT_HWCAP4";
+#if defined(__linux__)
+  case AT_PLATFORM: return "AT_PLATFORM";
   case AT_CLKTCK: return "AT_CLKTCK";
   case AT_SECURE: return "AT_SECURE";
   case AT_BASE_PLATFORM: return "AT_BASE_PLATFORM";
   case AT_RANDOM: return "AT_RANDOM";
-  case AT_HWCAP2: return "AT_HWCAP2";
   case AT_RSEQ_FEATURE_SIZE: return "AT_RSEQ_FEATURE_SIZE";
   case AT_RSEQ_ALIGN: return "AT_RSEQ_ALIGN";
-  case AT_HWCAP3: return "AT_HWCAP3";
-  case AT_HWCAP4: return "AT_HWCAP4";
   case AT_EXECFN: return "AT_EXECFN";
   case AT_SYSINFO_EHDR: return "AT_SYSINFO_EHDR";
   case AT_MINSIGSTKSZ: return "AT_MINSIGSTKSZ";
+#elif defined(__FreeBSD__)
+  case AT_EXECPATH: return "AT_EXECPATH";
+  case AT_CANARY: return "AT_CANARY";
+  case AT_CANARYLEN: return "AT_CANARYLEN";
+  case AT_OSRELDATE: return "AT_OSRELDATE";
+  case AT_NCPUS: return "AT_NCPUS";
+  case AT_PAGESIZES: return "AT_PAGESIZES";
+  case AT_PAGESIZESLEN: return "AT_PAGESIZESLEN";
+  case AT_TIMEKEEP: return "AT_TIMEKEEP";
+  case AT_STACKPROT: return "AT_STACKPROT";
+  case AT_EHDRFLAGS: return "AT_EHDRFLAGS";
+  case AT_BSDFLAGS: return "AT_BSDFLAGS";
+  case AT_ARGC: return "AT_ARGC";
+  case AT_ARGV: return "AT_ARGV";
+  case AT_ENVC: return "AT_ENVC";
+  case AT_ENVV: return "AT_ENVV";
+  case AT_PS_STRINGS: return "AT_PS_STRINGS";
+  case AT_FXRNG: return "AT_FXRNG";
+  case AT_KPRELOAD: return "AT_KPRELOAD";
+  case AT_USRSTACKBASE: return "AT_USRSTACKBASE";
+  case AT_USRSTACKLIM: return "AT_USRSTACKLIM";
+#endif
 #if defined(AT_VECTOR_SIZE_ARCH)
   // AT_VECTOR_SIZE_ARCH isn't a value: it's the number of architecture-specific
   // values that exist for the current architecture, so not relevant here.
@@ -108,11 +131,23 @@ void ld_show_auxv(ElfW(auxv_t)* auxv) {
     const char* name = auxv_name(v->a_type);
     long value = v->a_un.a_val;
     switch (v->a_type) {
-    case AT_SYSINFO_EHDR:
     case AT_PHDR:
     case AT_BASE:
     case AT_ENTRY:
+#if defined(__linux__)
+    case AT_SYSINFO_EHDR:
     case AT_RANDOM:
+#elif defined(__FreeBSD__)
+    case AT_CANARY:
+    case AT_PAGESIZES:
+    case AT_TIMEKEEP:
+    case AT_ARGV:
+    case AT_ENVV:
+    case AT_PS_STRINGS:
+    case AT_FXRNG:
+    case AT_KPRELOAD:
+    case AT_USRSTACKBASE:
+#endif
       async_safe_format_fd(STDOUT_FILENO, "%-20s %#lx\n", name, value);
       break;
     case AT_FLAGS:
@@ -122,8 +157,12 @@ void ld_show_auxv(ElfW(auxv_t)* auxv) {
     case AT_HWCAP4:
       async_safe_format_fd(STDOUT_FILENO, "%-20s %#lb\n", name, value);
       break;
+#if defined(__linux__)
     case AT_EXECFN:
     case AT_PLATFORM:
+#elif defined(__FreeBSD__)
+    case AT_EXECPATH:
+#endif
       async_safe_format_fd(STDOUT_FILENO, "%-20s \"%s\"\n", name, reinterpret_cast<char*>(value));
       break;
     default:

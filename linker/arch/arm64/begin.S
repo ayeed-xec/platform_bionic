@@ -32,11 +32,23 @@ ENTRY(_start)
   // Force unwinds to end in this function.
   .cfi_undefined lr
 
+#if defined(__FreeBSD__)
+  // FreeBSD passes the argument block in x0, and the program's _start
+  // (crtbegin.c) expects it there too. Keep it in a callee-saved register.
+  mov x19, x0
+  bl __linker_init
+
+  // __linker_init returns the address of the entry point in the main image.
+  mov x16, x0
+  mov x0, x19
+  br x16
+#else
   mov x0, sp
   bl __linker_init
 
   // __linker_init returns the address of the entry point in the main image.
   br x0
+#endif
 END(_start)
 
 NOTE_GNU_PROPERTY()

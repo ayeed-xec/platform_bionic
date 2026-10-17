@@ -70,11 +70,16 @@ class ShadowWrite {
   }
 
   ~ShadowWrite() {
+#if defined(__FreeBSD__)
+    // FreeBSD has no mremap(2), and bionic-freebsd has no CFI shadow yet.
+    async_safe_fatal("CFI shadow updates need mremap(2), which FreeBSD does not have");
+#else
     size_t size = aligned_end - aligned_start;
     mprotect(tmp_start, size, PROT_READ);
     void* res = mremap(tmp_start, size, size, MREMAP_MAYMOVE | MREMAP_FIXED,
                        reinterpret_cast<void*>(aligned_start));
     CHECK(res != MAP_FAILED);
+#endif
   }
 };
 

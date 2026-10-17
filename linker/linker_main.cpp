@@ -182,7 +182,12 @@ static void parse_LD_PRELOAD(const char* path) {
 static soinfo_list_t g_empty_list;
 
 static void add_vdso() {
+#if defined(__FreeBSD__)
+  // bionic-freebsd does not use FreeBSD's vdso yet (no AT_SYSINFO_EHDR).
+  ElfW(Ehdr)* ehdr_vdso = nullptr;
+#else
   ElfW(Ehdr)* ehdr_vdso = reinterpret_cast<ElfW(Ehdr)*>(getauxval(AT_SYSINFO_EHDR));
+#endif
   if (ehdr_vdso == nullptr) {
     return;
   }
@@ -227,7 +232,13 @@ struct ExecutableInfo {
 
 static ExecutableInfo get_executable_info(const char* arg_path) {
   ExecutableInfo result = {};
+#if defined(__FreeBSD__)
+  // FreeBSD has no /proc/self/exe: the kernel gives the path in AT_EXECPATH.
+  char const* exe_path = reinterpret_cast<char const*>(getauxval(AT_EXECPATH));
+  if (exe_path == nullptr) exe_path = arg_path;
+#else
   char const* exe_path = "/proc/self/exe";
+#endif
 
   // Stat "/proc/self/exe" instead of executable_path because
   // the executable could be unlinked by this point and it should
@@ -326,7 +337,11 @@ static ElfW(Addr) linker_main(KernelArgumentBlock& args, const char* exe_to_load
   // doesn't cost us anything.
   const char* ldpath_env = nullptr;
   const char* ldpreload_env = nullptr;
+#if defined(__FreeBSD__)
+  if (!issetugid()) {
+#else
   if (!getauxval(AT_SECURE)) {
+#endif
     ldpath_env = getenv("LD_LIBRARY_PATH");
     if (ldpath_env != nullptr) {
       LD_DEBUG(any, "[ LD_LIBRARY_PATH set to \"%s\" ]", ldpath_env);
