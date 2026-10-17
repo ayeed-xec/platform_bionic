@@ -40,7 +40,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/param.h>
+#if !defined(__FreeBSD__)
 #include <sys/socket.h>
+#endif
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -1540,7 +1542,12 @@ FILE* popen(const char* cmd, const char* mode) {
   int fds[2];
   bool bidirectional = false;
   if (strchr(mode, '+') != nullptr) {
+#if defined(__FreeBSD__)
+    // FreeBSD pipes are bidirectional, so a pipe does the work of a socketpair.
+    if (pipe2(fds, O_CLOEXEC) == -1) return nullptr;
+#else
     if (socketpair(AF_LOCAL, SOCK_CLOEXEC | SOCK_STREAM, 0, fds) == -1) return nullptr;
+#endif
     bidirectional = true;
     mode = "r+";
   } else {

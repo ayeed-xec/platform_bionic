@@ -45,7 +45,11 @@ static inline int force_O_LARGEFILE(int flags) {
 }
 
 static inline bool needs_mode(int flags) {
+#if defined(O_TMPFILE)
   return ((flags & O_CREAT) == O_CREAT) || ((flags & O_TMPFILE) == O_TMPFILE);
+#else
+  return (flags & O_CREAT) == O_CREAT;  // FreeBSD has no O_TMPFILE.
+#endif
 }
 
 int creat(const char* pathname, mode_t mode) {

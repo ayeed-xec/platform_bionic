@@ -31,8 +31,10 @@
 #include <signal.h>
 #include <stdio.h>
 #include <string.h>
+#if !defined(__FreeBSD__)
 #include <sys/epoll.h>
 #include <sys/signalfd.h>
+#endif
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
