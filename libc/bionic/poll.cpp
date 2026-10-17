@@ -36,7 +36,41 @@
 #include "private/SigSetConverter.h"
 
 extern "C" int __ppoll(pollfd*, unsigned int, timespec*, const sigset64_t*, size_t);
+#if defined(__FreeBSD__)
+extern "C" int __pselect(int, fd_set*, fd_set*, fd_set*, const timespec*, const sigset64_t*);
+
+// Linux's pselect6 writes the time that is left back to the timeout, and
+// select() gives it to the caller. FreeBSD's pselect(2) takes the signal mask
+// itself and does not change the timeout, so measure the time that it used.
+static int __pselect6(int fd_count, fd_set* read_fds, fd_set* write_fds, fd_set* error_fds,
+                      timespec* ts, void*) {
+  timespec start;
+  if (ts != nullptr) clock_gettime(CLOCK_MONOTONIC, &start);
+  int result = __pselect(fd_count, read_fds, write_fds, error_fds, ts, nullptr);
+  if (ts != nullptr && (result != -1 || errno == EINTR)) {
+    int saved_errno = errno;
+    timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    time_t sec = ts->tv_sec - (now.tv_sec - start.tv_sec);
+    long nsec = ts->tv_nsec - (now.tv_nsec - start.tv_nsec);
+    while (nsec < 0) {
+      nsec += 1000000000;
+      --sec;
+    }
+    while (nsec >= 1000000000) {
+      nsec -= 1000000000;
+      ++sec;
+    }
+    if (sec < 0) sec = nsec = 0;
+    ts->tv_sec = sec;
+    ts->tv_nsec = nsec;
+    errno = saved_errno;
+  }
+  return result;
+}
+#else
 extern "C" int __pselect6(int, fd_set*, fd_set*, fd_set*, timespec*, void*);
+#endif
 
 int poll(pollfd* fds, nfds_t fd_count, int ms) {
   timespec ts;
@@ -127,6 +161,9 @@ int pselect64(int fd_count, fd_set* read_fds, fd_set* write_fds, fd_set* error_f
     mutable_ss_ptr = &mutable_ss;
   }
 
+#if defined(__FreeBSD__)
+  return __pselect(fd_count, read_fds, write_fds, error_fds, mutable_ts_ptr, mutable_ss_ptr);
+#else
   // The Linux kernel only handles 6 arguments and this system call really needs 7,
   // so the last argument is a void* pointing to:
   struct pselect6_extra_data_t {
@@ -138,4 +175,5 @@ int pselect64(int fd_count, fd_set* read_fds, fd_set* write_fds, fd_set* error_f
   extra_data.ss_len = sizeof(*mutable_ss_ptr);
 
   return __pselect6(fd_count, read_fds, write_fds, error_fds, mutable_ts_ptr, &extra_data);
+#endif
 }

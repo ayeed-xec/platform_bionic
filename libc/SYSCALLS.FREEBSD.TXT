@@ -55,6 +55,8 @@ __getcwd(char*, size_t)                             arm64  N  getcwd
 execve(const char*, char* const*, char* const*)     arm64  E  execve
 wait4(pid_t, int*, int, struct rusage*)             arm64  E  wait4
 __ppoll:ppoll(struct pollfd*, unsigned int, const struct timespec*, const sigset_t*)  arm64  E  ppoll
+__pselect:pselect(int, fd_set*, fd_set*, fd_set*, const struct timespec*, const sigset_t*)  arm64  N  pselect6
+umask(mode_t)                                       arm64  E  umask
 
 # Memory.
 mmap|mmap64(void*, size_t, int, int, int, off_t)    arm64  E  mmap
@@ -100,6 +102,7 @@ __connect:connect(int, const struct sockaddr*, socklen_t)  arm64  E  connect
 __accept4:accept4(int, struct sockaddr*, socklen_t*, int)  arm64  E  accept4
 __sendto:sendto(int, const void*, size_t, int, const struct sockaddr*, socklen_t)  arm64  E  sendto
 __sendmsg:sendmsg(int, const struct msghdr*, int)  arm64  E  sendmsg
+recvfrom(int, void*, size_t, int, struct sockaddr*, socklen_t*)  arm64  E  recvfrom
 # Signals.
 kill(pid_t, int)                                    arm64  E  kill
 __sigaction:sigaction(int, const struct sigaction*, struct sigaction*)  arm64  N  rt_sigaction
