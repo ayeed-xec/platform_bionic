@@ -34,7 +34,23 @@ extern "C" int __clock_nanosleep(clockid_t, int, const timespec*, timespec*);
 
 int clock_nanosleep(clockid_t clock_id, int flags, const timespec* in, timespec* out) {
   if (clock_id == CLOCK_THREAD_CPUTIME_ID) return EINVAL;
+#if defined(__FreeBSD__)
+  // FreeBSD returns at once for a negative tv_sec; Linux gives EINVAL.
+  if (in != nullptr && in->tv_sec < 0) return EINVAL;
+#endif
 
   ErrnoRestorer errno_restorer;
   return (__clock_nanosleep(clock_id, flags, in, out) == 0) ? 0 : errno;
 }
+
+#if defined(__FreeBSD__)
+extern "C" int __nanosleep(const timespec*, timespec*);
+
+int nanosleep(const timespec* in, timespec* out) {
+  if (in != nullptr && in->tv_sec < 0) {
+    errno = EINVAL;
+    return -1;
+  }
+  return __nanosleep(in, out);
+}
+#endif

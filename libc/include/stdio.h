@@ -98,9 +98,16 @@ extern FILE __sF[] __REMOVED_IN(23, "Use stdin/stdout/stderr");
  * (which could fail).  Do not use this for anything.
  */
 #define FOPEN_MAX 20
+#if defined(__FreeBSD__)
+/* PATH_MAX is 1024 on FreeBSD. */
+#define FILENAME_MAX 1024
+
+#define L_tmpnam 1024
+#else
 #define FILENAME_MAX 4096
 
 #define L_tmpnam 4096
+#endif
 #define TMP_MAX 308915776
 
 void clearerr(FILE* _Nonnull __fp);

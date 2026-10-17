@@ -1117,8 +1117,16 @@ wint_t putwchar(wchar_t wc) {
 
 int remove(const char* path) {
   if (unlink(path) != -1) return 0;
+#if defined(__FreeBSD__)
+  // FreeBSD's unlink(2) fails with EPERM, not EISDIR, for a directory.
+  if (errno != EPERM) return -1;
+  if (rmdir(path) != -1) return 0;
+  if (errno == ENOTDIR) errno = EPERM;
+  return -1;
+#else
   if (errno != EISDIR) return -1;
   return rmdir(path);
+#endif
 }
 
 void rewind(FILE* fp) {
