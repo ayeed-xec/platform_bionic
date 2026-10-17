@@ -32,7 +32,7 @@
 #include <sys/cdefs.h>
 
 #include <sys/socket.h>
-#include <linux/if.h>
+#include <bits/freebsd/if.h>
 
 __BEGIN_DECLS
 

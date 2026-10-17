@@ -496,21 +496,23 @@ struct icmp6_filter {
  * BEGIN android-changed
  * Linux and *BSD kernels use opposite values to indicate pass/block in ICMPv6
  * filters, and assign a different value to the ICMP6_FILTER sockopt.
+ * bionic-freebsd: the FreeBSD kernel reads the filter, so these are the
+ * FreeBSD value (sys/netinet6/in6.h) and the BSD sense: a set bit passes.
  */
-#define ICMP6_FILTER 1
+#define ICMP6_FILTER 18
 
 #define	ICMP6_FILTER_SETPASSALL(filterp) \
-	(void)memset(filterp, 0x00, sizeof(struct icmp6_filter))
-#define	ICMP6_FILTER_SETBLOCKALL(filterp) \
 	(void)memset(filterp, 0xff, sizeof(struct icmp6_filter))
+#define	ICMP6_FILTER_SETBLOCKALL(filterp) \
+	(void)memset(filterp, 0x00, sizeof(struct icmp6_filter))
 #define	ICMP6_FILTER_SETPASS(type, filterp) \
-	(((filterp)->icmp6_filt[(type) >> 5]) &= ~(1 << ((type) & 31)))
-#define	ICMP6_FILTER_SETBLOCK(type, filterp) \
 	(((filterp)->icmp6_filt[(type) >> 5]) |= (1 << ((type) & 31)))
+#define	ICMP6_FILTER_SETBLOCK(type, filterp) \
+	(((filterp)->icmp6_filt[(type) >> 5]) &= ~(1 << ((type) & 31)))
 #define	ICMP6_FILTER_WILLPASS(type, filterp) \
-	((((filterp)->icmp6_filt[(type) >> 5]) & (1 << ((type) & 31))) == 0)
-#define	ICMP6_FILTER_WILLBLOCK(type, filterp) \
 	((((filterp)->icmp6_filt[(type) >> 5]) & (1 << ((type) & 31))) != 0)
+#define	ICMP6_FILTER_WILLBLOCK(type, filterp) \
+	((((filterp)->icmp6_filt[(type) >> 5]) & (1 << ((type) & 31))) == 0)
 /*
  * END android-changed
  */

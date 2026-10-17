@@ -68,7 +68,7 @@
 #include <sys/types.h>
 #include <endian.h>
 
-#include <linux/in6.h>
+#include <netinet/in6.h>
 
 __BEGIN_DECLS
 

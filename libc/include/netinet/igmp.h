@@ -36,7 +36,7 @@
 #include <sys/cdefs.h>
 #include <netinet/in.h>
 
-#include <linux/igmp.h>
+#include <bits/freebsd/igmp.h>
 
 __BEGIN_DECLS
 
