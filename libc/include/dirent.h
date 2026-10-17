@@ -66,9 +66,8 @@ __BEGIN_DECLS
 
 #if defined(__FreeBSD__)
 /*
- * bionic-freebsd: the layout of FreeBSD sys/dirent.h, which getdirentries(2)
- * writes (ADR 0002). The first field is FreeBSD's d_fileno, with the
- * Android name d_ino.
+ * FreeBSD's struct dirent, which getdirentries(2) fills in.  FreeBSD calls
+ * the first field d_fileno; Android code knows it as d_ino.
  */
 #define __DIRENT64_BODY \
     ino_t d_ino; \

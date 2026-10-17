@@ -299,8 +299,8 @@ TEST(signal, sigaction64_SIGRTMIN) {
   TestSigAction(sigaction64, sigaddset64, SIGRTMIN);
 }
 
-// bionic-freebsd: these tests read the kernel's signal mask as a 64-bit
-// Linux sigset. FreeBSD's sigset_t has 128 bits, and SIGRTMIN is 65.
+// These tests read the kernel's signal mask as a 64-bit Linux sigset. On
+// FreeBSD sigset_t has 128 bits and SIGRTMIN is 65.
 #if !defined(__FreeBSD__)
 static void ClearSignalMask() {
   uint64_t sigset = 0;
@@ -802,7 +802,7 @@ TEST(signal, sigset_size) {
   // The setjmp implementations assume that sigset_t can fit in a long.
   // This is true because the 32-bit ABIs have broken rt signal support,
   // but the 64-bit ABIs both have a SIGRTMAX defined as 64.
-// bionic-freebsd: FreeBSD's sigset_t has 128 bits.
+// FreeBSD's sigset_t has 128 bits.
 #if defined(__BIONIC__) && !defined(__FreeBSD__)
   static_assert(sizeof(sigset_t) <= sizeof(long), "sigset_t doesn't fit in a long");
 #endif

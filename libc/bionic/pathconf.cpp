@@ -34,7 +34,7 @@
 
 static long __filesizebits(const struct statfs& s) {
   switch (s.f_type) {
-#if !defined(__FreeBSD__)  // bionic-freebsd: FreeBSD has no JFFS2.
+#if !defined(__FreeBSD__)  // No JFFS2 on FreeBSD.
     case JFFS2_SUPER_MAGIC:
 #endif
     case MSDOS_SUPER_MAGIC:
@@ -46,8 +46,8 @@ static long __filesizebits(const struct statfs& s) {
 }
 
 #if defined(__FreeBSD__)
-// bionic-freebsd: FreeBSD has no LINK_MAX and no MINIX or ReiserFS. Its own
-// file system allows UFS_LINK_MAX (ufs/ufs/dinode.h) links.
+// FreeBSD has no LINK_MAX, MINIX or ReiserFS. UFS allows UFS_LINK_MAX
+// (<ufs/ufs/dinode.h>) links.
 static long __link_max(const struct statfs& s) {
   switch (s.f_type) {
     case EXT2_SUPER_MAGIC:
@@ -77,7 +77,7 @@ static long __link_max(const struct statfs& s) {
 
 static long __2_symlinks(const struct statfs& s) {
   switch (s.f_type) {
-#if !defined(__FreeBSD__)  // bionic-freebsd: FreeBSD has none of these.
+#if !defined(__FreeBSD__)  // FreeBSD has none of these.
     case ADFS_SUPER_MAGIC:
     case BFS_MAGIC:
     case CRAMFS_MAGIC:

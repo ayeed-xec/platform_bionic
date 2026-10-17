@@ -96,7 +96,7 @@ FILE* tmpfile() {
   if (fd == -1) return __tmpfile_dir_legacy(tmpdir);
   return __fd_to_fp(fd);
 #else
-  // bionic-freebsd: FreeBSD has no O_TMPFILE.
+  // FreeBSD has no O_TMPFILE.
   return __tmpfile_dir_legacy(tmpdir);
 #endif
 }

@@ -5,9 +5,8 @@
  */
 
 /*
- * bionic-freebsd has no GWP-ASan until the scudo port (bionic-freebsd
- * spec, section 12).  These functions stand in for gwp_asan_wrappers.cpp:
- * GWP-ASan is never on, and android_mallopt(M_INITIALIZE_GWP_ASAN) fails.
+ * No GWP-ASan yet; it comes with scudo.  Until then GWP-ASan is always
+ * off and android_mallopt(M_INITIALIZE_GWP_ASAN) fails.
  */
 
 #include "bionic/gwp_asan_wrappers.h"

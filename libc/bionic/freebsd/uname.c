@@ -5,11 +5,10 @@
  */
 
 /*
- * uname(2), sethostname(2) and setdomainname(2) for bionic-freebsd.
- * FreeBSD has no uname system call.  The fields of bionic's struct utsname
- * come from sysctl names (__sysctl() with MIB numbers), and the two set
- * functions write the sysctl names kern.hostname and kern.nisdomainname.
- * gethostname() and getdomainname() are in bionic's gethostname.cpp.
+ * uname(3), sethostname(3) and setdomainname(3) on top of sysctl.  FreeBSD
+ * has no uname system call; its own libc reads the same sysctls.
+ * gethostname() and getdomainname() stay in gethostname.cpp and call
+ * uname().
  *
  * field	sysctl name
  * sysname	kern.ostype
@@ -25,7 +24,7 @@
 #include <sys/utsname.h>
 #include <unistd.h>
 
-/* MIB numbers from FreeBSD sys/sys/sysctl.h. */
+/* From FreeBSD's <sys/sysctl.h>. */
 #define	CTL_KERN		1
 #define	CTL_HW			6
 #define	KERN_OSTYPE		1
@@ -39,9 +38,8 @@ int	__sysctl(const int *, unsigned int, void *, size_t *, const void *,
 	    size_t);
 
 /*
- * Read one string value into a field of SYS_NMLN bytes.  When the value is
- * longer, the kernel copies the first bytes and fails with ENOMEM: cut the
- * value at the field size.
+ * Read one string into a SYS_NMLN field.  The kernel copies what fits of
+ * a longer value and fails with ENOMEM, which is fine here.
  */
 static int
 get_field(int mib0, int mib1, char *field)
@@ -59,8 +57,7 @@ get_field(int mib0, int mib1, char *field)
 }
 
 /*
- * Write a name.  Linux fails with EINVAL when the name is longer than 64
- * bytes.
+ * Linux rejects names longer than 64 bytes with EINVAL; do the same.
  */
 static int
 set_name(int mib1, const char *name, size_t len)

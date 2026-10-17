@@ -5,11 +5,10 @@
  */
 
 /*
- * __getdents64() for bionic-freebsd.  bionic's readdir() reads a directory
- * with it.  FreeBSD has no getdents64.  getdirentries(2) has the same job,
- * and it writes the FreeBSD struct dirent that <dirent.h> has (ADR 0002).
- * The fourth argument of getdirentries(2) is the base position of the
- * block.  bionic does not use it: the wrapper passes NULL.
+ * bionic's readdir() reads directories through __getdents64().  FreeBSD
+ * has getdirentries(2) instead, which fills in the FreeBSD struct dirent
+ * that <dirent.h> declares.  bionic never needs the base offset, so pass
+ * NULL for it.
  */
 
 #include <dirent.h>

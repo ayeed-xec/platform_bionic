@@ -46,7 +46,7 @@ pid_t waitpid(pid_t pid, int* status, int options) {
 
 int waitid(idtype_t which, id_t id, siginfo_t* info, int options) {
 #if defined(__FreeBSD__)
-  // bionic-freebsd: FreeBSD's wait6(2) returns the pid, and waitid() returns 0.
+  // wait6(2) returns the pid; waitid() returns 0.
   return (__wait6(which, id, nullptr, options, nullptr, info) == -1) ? -1 : 0;
 #else
   // The system call takes an optional struct rusage that we don't need.

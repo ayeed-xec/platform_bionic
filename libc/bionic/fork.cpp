@@ -44,7 +44,7 @@ __BIONIC_WEAK_FOR_NATIVE_BRIDGE_INLINE
 int __clone_for_fork() {
   pthread_internal_t* self = __get_thread();
 #if defined(__FreeBSD__)
-  // bionic-freebsd: FreeBSD's fork(2). The child's thread has a new id.
+  // fork(2) gives the child's thread a new id, so refresh the cached tid and pid.
   int result = __freebsd_fork();
   if (result == 0) {
     long tid;

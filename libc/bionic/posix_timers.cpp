@@ -38,7 +38,7 @@
 
 // System calls.
 #if defined(__FreeBSD__)
-// bionic-freebsd: the kernel timer id of FreeBSD's ktimer_create(2).
+// FreeBSD's ktimer_create(2) hands back an int timer id.
 typedef int __kernel_timer_t;
 #endif
 

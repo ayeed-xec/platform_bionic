@@ -39,9 +39,9 @@ extern "C" int __ppoll(pollfd*, unsigned int, timespec*, const sigset64_t*, size
 #if defined(__FreeBSD__)
 extern "C" int __pselect(int, fd_set*, fd_set*, fd_set*, const timespec*, const sigset64_t*);
 
-// Linux's pselect6 writes the time that is left back to the timeout, and
-// select() gives it to the caller. FreeBSD's pselect(2) takes the signal mask
-// itself and does not change the timeout, so measure the time that it used.
+// Linux's pselect6 writes the remaining time back into the timeout, and
+// select() hands it to the caller. FreeBSD's pselect(2) takes the signal
+// mask directly and leaves the timeout alone, so measure the elapsed time.
 static int __pselect6(int fd_count, fd_set* read_fds, fd_set* write_fds, fd_set* error_fds,
                       timespec* ts, void*) {
   timespec start;

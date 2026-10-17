@@ -94,7 +94,7 @@ __BEGIN_DECLS
 #define _POSIX_TRACE_LOG __BIONIC_POSIX_FEATURE_MISSING
 #define _POSIX_TYPED_MEMORY_OBJECTS __BIONIC_POSIX_FEATURE_MISSING
 
-#define _POSIX_VDISABLE             0xff /* bionic-freebsd: the FreeBSD tty value. */
+#define _POSIX_VDISABLE             0xff /* FreeBSD's value. */
 
 #define _POSIX2_C_BIND              _POSIX_VERSION
 #define _POSIX2_C_DEV               __BIONIC_POSIX_FEATURE_MISSING

@@ -5,18 +5,16 @@
  */
 
 /*
- * Linux system calls with no FreeBSD equivalent yet (kind G in
- * SYSCALLS.FREEBSD.TXT, docs/specs/syscall-parity.md).  The bionic code that
- * calls them links, and the call fails as on a Linux kernel without the
- * system call.
+ * Linux system calls that FreeBSD has no counterpart for yet.  They fail
+ * the way they would on a Linux kernel built without them, so callers
+ * link and see an error they already handle.
  *
- * brk	FreeBSD arm64 has no break(2): the heap uses mmap(2).  brk() and
- *	sbrk() fail with ENOMEM.
- * clone	The emulation on rfork(2) and thr_new(2) comes later.  fork()
- *	does not use it.
- * rt_tgsigqueueinfo	sigqueue(2) sends to a process, not to a thread.
- * syncfs	FreeBSD has no call that syncs one file system by file
- *	descriptor.  syncfs() fails with ENOSYS.
+ * brk, sbrk		FreeBSD/arm64 has no break(2); malloc uses mmap(2).
+ *			Both fail with ENOMEM.
+ * clone		Needs an emulation on rfork(2) and thr_new(2).  fork()
+ *			does not come through here.
+ * rt_tgsigqueueinfo	sigqueue(2) can only target a process, not a thread.
+ * syncfs		Nothing syncs a single file system by descriptor.
  */
 
 #include <errno.h>

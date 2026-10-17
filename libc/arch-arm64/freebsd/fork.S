@@ -5,8 +5,8 @@
  */
 
 /*
- * fork(2) for __clone_for_fork().  In the child, the FreeBSD kernel returns
- * 1 in x1, and x0 is then made 0, as in vfork.S.
+ * Raw fork(2) for __clone_for_fork().  The kernel sets x1 to 1 in the
+ * child; clear x0 there so the child sees 0, as vfork.S does.
  */
 
 #include <private/bionic_asm.h>

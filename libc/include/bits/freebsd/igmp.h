@@ -5,9 +5,9 @@
  */
 
 /*
- * IGMP message types, from FreeBSD sys/netinet/igmp.h.  They are wire
- * values (RFC 1112, RFC 2236 and RFC 3376), the same on each system.
- * <netinet/igmp.h> has struct igmp.
+ * IGMP message types from FreeBSD's <netinet/igmp.h>.  These are wire
+ * values (RFC 1112, 2236 and 3376), so every system uses the same numbers.
+ * struct igmp is in <netinet/igmp.h>.
  */
 
 #pragma once

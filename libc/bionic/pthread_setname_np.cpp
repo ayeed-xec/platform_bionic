@@ -100,7 +100,7 @@ int pthread_setname_np(pthread_t t, const char* thread_name) {
 
   // We have to set another thread's name.
 #if defined(__FreeBSD__)
-  // bionic-freebsd: thr_set_name(2) names any thread of the process.
+  // thr_set_name(2) can name any thread in the process.
   pid_t tid = __pthread_internal_gettid(t, "pthread_setname_np");
   if (tid == -1) return ESRCH;
   return __thr_set_name(tid, thread_name) == -1 ? errno : 0;

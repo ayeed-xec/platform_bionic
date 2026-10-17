@@ -56,7 +56,7 @@ int pthread_sigqueue(pthread_t t, int sig, const union sigval value) {
   siginfo.si_value = value;
 
 #if defined(__FreeBSD__)
-  // bionic-freebsd: no FreeBSD equivalent yet (freebsd/no_equivalent.c).
+  // Nothing on FreeBSD queues a signal to one thread; see freebsd/no_equivalent.c.
   return __rt_tgsigqueueinfo(pid, tid, sig, &siginfo) ? errno : 0;
 #else
   return syscall(__NR_rt_tgsigqueueinfo, pid, tid, sig, &siginfo) ? errno : 0;

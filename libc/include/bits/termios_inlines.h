@@ -45,9 +45,9 @@
 
 __BEGIN_DECLS
 
-// bionic-freebsd: the FreeBSD kernel keeps separate input and output speeds
-// in `struct termios`, and a speed is the baud rate itself. Only the Bxxx
-// values are valid, as on Linux.
+// FreeBSD keeps separate input and output speeds in struct termios, and a
+// speed is the baud rate itself. As on Linux, only the Bxxx values are
+// accepted.
 static __inline int __bionic_termios_valid_speed(speed_t speed) {
   switch (speed) {
     case B0: case B50: case B75: case B110: case B134: case B150: case B200:
@@ -129,8 +129,8 @@ __BIONIC_TERMIOS_INLINE int tcflow(int fd, int action) {
 }
 
 __BIONIC_TERMIOS_INLINE int tcflush(int fd, int queue) {
-  // TCIFLUSH, TCOFLUSH and TCIOFLUSH have the values of the FREAD, FWRITE
-  // and FREAD|FWRITE bits that TIOCFLUSH takes.
+  // TCIFLUSH, TCOFLUSH and TCIOFLUSH line up with the FREAD, FWRITE and
+  // FREAD|FWRITE bits that TIOCFLUSH wants.
   if (queue != TCIFLUSH && queue != TCOFLUSH && queue != TCIOFLUSH) {
     errno = EINVAL;
     return -1;
@@ -148,8 +148,8 @@ __BIONIC_TERMIOS_INLINE pid_t tcgetsid(int fd) {
 }
 
 __BIONIC_TERMIOS_INLINE int tcsendbreak(int fd, int duration) {
-  // A zero duration sends the break for 0.4 seconds (POSIX: 0.25 to 0.5).
-  // Another duration is in tenths of a second, as Linux's TCSBRKP.
+  // Duration 0 means 0.4 seconds (POSIX allows 0.25 to 0.5). Anything else
+  // is in tenths of a second, like Linux's TCSBRKP.
   long ms = (duration > 0) ? duration * 100L : 400L;
   struct timespec ts = { ms / 1000, (ms % 1000) * 1000000L };
 

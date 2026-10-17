@@ -5,10 +5,10 @@
  */
 
 /*
- * Terminal ioctls of the FreeBSD kernel ABI, from FreeBSD
- * sys/sys/_winsize.h and sys/sys/ttycom.h.  struct winsize has the same
- * layout as on Linux; the ioctl numbers are the FreeBSD ones.  struct
- * termios is in <bits/freebsd/termios.h>.  abi_check.c checks them.
+ * Terminal ioctls from FreeBSD's <sys/ttycom.h> and <sys/_winsize.h>.
+ * struct winsize matches Linux; the ioctl numbers are FreeBSD's.  struct
+ * termios is in <bits/freebsd/termios.h>.  abi_check.c compares these with
+ * the FreeBSD headers.
  */
 
 #pragma once

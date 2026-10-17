@@ -5,10 +5,10 @@
  */
 
 /*
- * qsort() for bionic-freebsd.  The Android libc takes qsort() from
- * external/llvm-libc, which tier 0 does not have yet.  This version is a
- * heap sort: it needs no memory, and the worst case is O(n log n).  Like
- * qsort(), it is not stable.
+ * Heap sort stand-in for qsort(3).  Android takes qsort() from
+ * external/llvm-libc, which this build does not have yet.  Heap sort needs
+ * no extra memory and stays O(n log n) in the worst case.  Like qsort(),
+ * it is not stable.
  */
 
 #include <stdlib.h>
@@ -30,7 +30,7 @@ swap_elements(char *a, char *b, size_t size)
 	}
 }
 
-/* Move the element at index root down until the heap below it is valid. */
+/* Sift the element at root down until its subtree is a heap again. */
 static void
 sift_down(char *base, size_t root, size_t n, size_t size, compar_t compar)
 {

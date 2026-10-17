@@ -37,8 +37,8 @@
 #include <sys/types.h>
 
 /*
- * bionic-freebsd: FreeBSD has no times(2), and libc computes times(). So
- * struct tms is not a kernel structure, and it keeps the Android layout.
+ * FreeBSD has no times(2); libc computes the values.  struct tms never
+ * crosses into the kernel, so it keeps the Android layout.
  */
 struct tms {
   clock_t tms_utime;

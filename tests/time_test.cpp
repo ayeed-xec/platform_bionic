@@ -964,8 +964,8 @@ TEST(time, timer_delete_from_timer_thread) {
 }
 
 // Musl doesn't define __NR_clock_gettime on 32-bit architectures.
-// bionic-freebsd has no __NR_* names: FreeBSD's clock_gettime(2) takes the
-// same arguments.
+// FreeBSD has no __NR_* names, but SYS_clock_gettime takes the same
+// arguments.
 #if defined(__FreeBSD__)
 #define CLOCK_GETTIME_SYSCALL SYS_clock_gettime
 #elif !defined(__NR_clock_gettime)

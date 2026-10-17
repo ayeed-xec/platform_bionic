@@ -5,10 +5,10 @@
  */
 
 /*
- * Interface names, flags and request structures of the FreeBSD kernel ABI,
- * from FreeBSD sys/net/if.h.  The kernel reads them, so they have the
- * FreeBSD values and layouts.  The interface ioctls (SIOC*) come with
- * <sys/sockio.h> later.  abi_check.c checks them.
+ * Interface flags and request structures from FreeBSD's <net/if.h>.  The
+ * kernel reads these, so the values and layouts are FreeBSD's.  The SIOC*
+ * ioctls will come with <sys/sockio.h>.  abi_check.c compares these with
+ * the FreeBSD headers.
  */
 
 #pragma once

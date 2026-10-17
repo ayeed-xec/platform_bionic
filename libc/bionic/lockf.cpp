@@ -35,7 +35,7 @@
 int lockf64(int fd, int cmd, off64_t length) {
   // Translate POSIX lockf into fcntl.
 #if defined(__FreeBSD__)
-  // bionic-freebsd: FreeBSD has no struct flock64; its struct flock has a 64-bit off_t.
+  // FreeBSD has no struct flock64; struct flock already has a 64-bit off_t.
   struct flock fl = {};
 #else
   struct flock64 fl = {};

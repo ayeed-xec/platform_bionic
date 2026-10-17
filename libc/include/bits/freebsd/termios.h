@@ -5,11 +5,11 @@
  */
 
 /*
- * struct termios and the termios constants of the FreeBSD kernel ABI, from
- * FreeBSD sys/sys/_termios.h and include/termios.h.  The kernel reads them,
- * so they have the FreeBSD values: a speed is the baud rate itself (B9600 is
- * 9600), and struct termios has c_ispeed and c_ospeed.  The terminal ioctls
- * are in <bits/freebsd/ttycom.h>.  abi_check.c checks them.
+ * Terminal settings as the FreeBSD kernel expects them, from FreeBSD's
+ * <sys/_termios.h> and <termios.h>.  Speeds are plain baud rates, so B9600
+ * is 9600, and struct termios carries c_ispeed and c_ospeed.  The ioctls
+ * are in <bits/freebsd/ttycom.h>.  abi_check.c compares all of this with
+ * the FreeBSD headers.
  */
 
 #pragma once
@@ -107,7 +107,7 @@
 #define	PENDIN		0x20000000
 #define	NOFLSH		0x80000000
 
-/* Speeds: the baud rate itself. */
+/* Speeds are baud rates. */
 #define	B0		0
 #define	B50		50
 #define	B75		75
