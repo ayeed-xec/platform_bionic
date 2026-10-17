@@ -36,7 +36,7 @@
 #include <sys/cdefs.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
-#include <linux/termios.h>
+#include <bits/freebsd/termios.h>
 
 __BEGIN_DECLS
 

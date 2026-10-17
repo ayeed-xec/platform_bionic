@@ -34,7 +34,7 @@
 #include <sys/ioctl.h>
 #include <sys/types.h>
 
-#include <linux/termios.h>
+#include <bits/freebsd/termios.h>
 
 #if !defined(__BIONIC_TERMIOS_WINSIZE_INLINE)
 #define __BIONIC_TERMIOS_WINSIZE_INLINE static __inline

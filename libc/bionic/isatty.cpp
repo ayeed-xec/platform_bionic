@@ -26,20 +26,10 @@
  * SUCH DAMAGE.
  */
 
-#if defined(__FreeBSD__)
-#include <sys/ioctl.h>
-#else
 #include <termios.h>
-#endif
 #include <unistd.h>
 
 int isatty(int fd) {
-#if defined(__FreeBSD__)
-  // No termios headers yet (M1). Only a terminal has a window size.
-  winsize size;
-  return ioctl(fd, TIOCGWINSZ, &size) == 0;
-#else
   termios term;
   return tcgetattr(fd, &term) == 0;
-#endif
 }

@@ -35,7 +35,7 @@
 // in API level 21, ensure that everyone's using the latest versions.
 #if __ANDROID_API__ < 28
 
-#include <linux/termios.h>
+#include <bits/freebsd/termios.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
 
