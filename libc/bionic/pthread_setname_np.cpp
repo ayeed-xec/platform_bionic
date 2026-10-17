@@ -40,6 +40,10 @@
 #include "private/ErrnoRestorer.h"
 #include "pthread_internal.h"
 
+#if defined(__FreeBSD__)
+extern "C" int __thr_set_name(long, const char*);
+#endif
+
 // This value is not exported by kernel headers.
 #define MAX_TASK_COMM_LEN 16
 
@@ -95,6 +99,12 @@ int pthread_setname_np(pthread_t t, const char* thread_name) {
   }
 
   // We have to set another thread's name.
+#if defined(__FreeBSD__)
+  // bionic-freebsd: thr_set_name(2) names any thread of the process.
+  pid_t tid = __pthread_internal_gettid(t, "pthread_setname_np");
+  if (tid == -1) return ESRCH;
+  return __thr_set_name(tid, thread_name) == -1 ? errno : 0;
+#else
   int fd = __open_task_comm_fd(t, O_WRONLY, "pthread_setname_np");
   if (fd == -1) return errno;
 
@@ -104,4 +114,5 @@ int pthread_setname_np(pthread_t t, const char* thread_name) {
   if (n == -1) return errno;
   if (n != static_cast<ssize_t>(thread_name_len)) return EIO;
   return 0;
+#endif
 }
