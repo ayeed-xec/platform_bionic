@@ -34,7 +34,7 @@
  */
 
 #include <sys/cdefs.h>
-#include <linux/errno.h>
+#include <bits/freebsd/errno.h>
 
 __BEGIN_DECLS
 
