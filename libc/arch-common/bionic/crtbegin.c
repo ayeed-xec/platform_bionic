@@ -84,7 +84,11 @@ __used static void _start_main(void* raw_args) {
 #define PRE ".text; .global _start; .type _start,%function; _start:"
 #define POST "; .size _start, .-_start"
 
-#if defined(__aarch64__)
+#if defined(__aarch64__) && defined(__FreeBSD__)
+// FreeBSD passes the argument block in x0. It aligns sp down to 16 bytes, so
+// sp can be 8 bytes below the argument block.
+__asm__(PRE "bti j; mov fp,#0; mov lr,#0; b _start_main" POST);
+#elif defined(__aarch64__)
 __asm__(PRE "bti j; mov fp,#0; mov lr,#0; mov x0,sp; b _start_main" POST);
 #elif defined(__arm__)
 __asm__(PRE "mov fp,#0; mov lr,#0; mov r0,sp; b _start_main" POST);

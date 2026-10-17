@@ -42,13 +42,23 @@ void __libc_arc4random_buf_or_die(void* buf, size_t n) {
     return;
   }
 
+#if defined(__FreeBSD__)
+  // FreeBSD has no AT_RANDOM. AT_CANARY gives AT_CANARYLEN random bytes, and
+  // the stack guard already uses the first sizeof(uintptr_t) of them.
+  static size_t at_random_bytes_consumed = sizeof(uintptr_t);
+  const size_t at_random_size = getauxval(AT_CANARYLEN);
+  char* at_random = reinterpret_cast<char*>(getauxval(AT_CANARY));
+#else
   static size_t at_random_bytes_consumed = 0;
-  if (at_random_bytes_consumed + n > 16) {
+  const size_t at_random_size = 16;
+  char* at_random = reinterpret_cast<char*>(getauxval(AT_RANDOM));
+#endif
+  if (at_random == nullptr || at_random_bytes_consumed + n > at_random_size) {
     async_safe_fatal("ran out of AT_RANDOM bytes, have %zu, requested %zu",
-                     16 - at_random_bytes_consumed, n);
+                     at_random_size - at_random_bytes_consumed, n);
   }
 
-  memcpy(buf, reinterpret_cast<char*>(getauxval(AT_RANDOM)) + at_random_bytes_consumed, n);
+  memcpy(buf, at_random + at_random_bytes_consumed, n);
   at_random_bytes_consumed += n;
 }
 

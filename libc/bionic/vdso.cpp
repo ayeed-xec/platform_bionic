@@ -119,7 +119,12 @@ void __libc_init_vdso(libc_globals* globals) {
 #endif
 
   // Do we have a vdso?
+#if defined(__FreeBSD__)
+  // FreeBSD has no vdso with these functions (no AT_SYSINFO_EHDR).
+  uintptr_t vdso_ehdr_addr = 0;
+#else
   uintptr_t vdso_ehdr_addr = getauxval(AT_SYSINFO_EHDR);
+#endif
   ElfW(Ehdr)* vdso_ehdr = reinterpret_cast<ElfW(Ehdr)*>(vdso_ehdr_addr);
   if (vdso_ehdr == nullptr) {
     return;

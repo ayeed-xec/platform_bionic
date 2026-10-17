@@ -39,7 +39,11 @@
 #include "pthread_internal.h"
 
 extern "C" pid_t __getpid();
+#if defined(__FreeBSD__)
+extern "C" int __thr_self(long* tid);
+#else
 extern "C" int __set_tid_address(int* tid_address);
+#endif
 
 // Declared in "private/bionic_ssp.h".
 uintptr_t __stack_chk_guard = 0;
@@ -79,8 +83,16 @@ extern "C" void __libc_init_main_thread_early(const KernelArgumentBlock& args,
   __init_tcb(temp_tcb, &main_thread);
   __init_tcb_dtv(temp_tcb);
   __set_tls(&temp_tcb->tls_slot(0));
+#if defined(__FreeBSD__)
+  // A FreeBSD thread ID is not the process ID.
+  long tid;
+  __thr_self(&tid);
+  main_thread.tid = tid;
+  main_thread.set_cached_pid(__getpid());
+#else
   main_thread.tid = __getpid();
   main_thread.set_cached_pid(main_thread.tid);
+#endif
   main_thread.stack_top = reinterpret_cast<uintptr_t>(args.argv);
   main_thread.stack_bottom = 0;
 }
@@ -115,15 +127,30 @@ extern "C" void android_reset_stack_guards() {
   __init_tcb_stack_guard(__get_bionic_tcb());
 }
 
+#if defined(__FreeBSD__)
+// FreeBSD has no AT_RANDOM. As FreeBSD's own libc does, take the first stack
+// guard from the canary that the kernel gives in AT_CANARY (AT_CANARYLEN bytes).
+static void __init_stack_guard_from_canary() {
+  const void* canary = reinterpret_cast<const void*>(getauxval(AT_CANARY));
+  if (canary == nullptr || getauxval(AT_CANARYLEN) < sizeof(__stack_chk_guard)) {
+    async_safe_fatal("no stack canary from the kernel (AT_CANARY)");
+  }
+  __builtin_memcpy(&__stack_chk_guard, canary, sizeof(__stack_chk_guard));
+  __init_tcb_stack_guard(__get_bionic_tcb());
+}
+#endif
+
 // Finish initializing the main thread.
 __BIONIC_WEAK_FOR_NATIVE_BRIDGE
 extern "C" void __libc_init_main_thread_late() {
   __init_bionic_tls_ptrs(__get_bionic_tcb(), __allocate_temp_bionic_tls());
 
+#if !defined(__FreeBSD__)
   // Tell the kernel to clear our tid field when we exit, so we're like any other pthread.
   // For threads created by pthread_create, this setup happens during the clone syscall (i.e.
   // CLONE_CHILD_CLEARTID).
   __set_tid_address(&main_thread.tid);
+#endif
 
   pthread_attr_init(&main_thread.attr);
   // We don't want to explicitly set the main thread's scheduler attributes (http://b/68328561).
@@ -133,7 +160,11 @@ extern "C" void __libc_init_main_thread_late() {
   // User code should never see this; we'll compute it when asked.
   pthread_attr_setstacksize(&main_thread.attr, 0);
 
+#if defined(__FreeBSD__)
+  __init_stack_guard_from_canary();
+#else
   android_reset_stack_guards();
+#endif
 
   __init_thread(&main_thread);
 

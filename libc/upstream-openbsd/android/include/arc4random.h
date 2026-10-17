@@ -59,10 +59,18 @@ static inline int _rs_allocate(struct _rs** rsp, struct _rsx** rsxp) {
     async_safe_fatal("arc4random data allocation failed: %m");
   }
 
+#if defined(__FreeBSD__)
+  // FreeBSD has OpenBSD's minherit(MAP_INHERIT_ZERO) as INHERIT_ZERO.
+  int minherit(void*, size_t, int);
+  if (minherit(p, size, INHERIT_ZERO) == -1) {
+    async_safe_fatal("arc4random data INHERIT_ZERO failed: %m");
+  }
+#else
   // Equivalent to OpenBSD's minherit(MAP_INHERIT_ZERO).
   if (madvise(p, size, MADV_WIPEONFORK) == -1) {
     async_safe_fatal("arc4random data MADV_WIPEONFORK failed: %m");
   }
+#endif
 
   // Give the allocation a name to make tombstones more intelligible.
   prctl(PR_SET_VMA, PR_SET_VMA_ANON_NAME, p, size, "arc4random data");

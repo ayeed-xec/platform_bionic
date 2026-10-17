@@ -57,7 +57,8 @@
 #include "sys/system_properties.h"
 #include "sysprop_helpers.h"
 
-#ifdef __aarch64__
+// FreeBSD has no MTE.
+#if defined(__aarch64__) && !defined(__FreeBSD__)
 extern "C" const char* __gnu_basename(const char* path);
 
 static HeapTaggingLevel __get_memtag_level_from_note(const ElfW(Phdr) * phdr_start, size_t phdr_ct,

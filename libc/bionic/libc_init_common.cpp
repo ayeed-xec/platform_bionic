@@ -123,7 +123,7 @@ void __libc_init_scudo() {
 __BIONIC_WEAK_FOR_NATIVE_BRIDGE
 __attribute__((no_sanitize("hwaddress", "memtag"))) void
 __libc_init_mte_late() {
-#if defined(__aarch64__)
+#if defined(__aarch64__) && !defined(__FreeBSD__)  // FreeBSD has no MTE.
   if (!__libc_shared_globals()->heap_tagging_upgrade_timer_sec) {
     return;
   }
@@ -372,11 +372,20 @@ static void __initialize_personality() {
 #endif
 }
 
+#if defined(__FreeBSD__)
+extern "C" int issetugid();
+#endif
+
 void __libc_init_AT_SECURE(char** env) {
+#if defined(__FreeBSD__)
+  // FreeBSD has no AT_SECURE: issetugid(2) gives the same information.
+  unsigned long is_AT_SECURE = issetugid();
+#else
   // Check that the kernel provided a value for AT_SECURE.
   errno = 0;
   unsigned long is_AT_SECURE = getauxval(AT_SECURE);
   if (errno != 0) __early_abort(__LINE__);
+#endif
 
   // Always ensure that STDIN/STDOUT/STDERR exist. This prevents file
   // descriptor confusion bugs where a parent process closes
