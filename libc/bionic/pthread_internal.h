@@ -71,6 +71,12 @@ class pthread_internal_t {
 
   pid_t tid;
 
+#if defined(__FreeBSD__)
+  // thr_exit(2) sets this word to 1 and wakes the joiner after the thread
+  // has left its stack, as CLONE_CHILD_CLEARTID clears tid on Linux.
+  long exit_word;
+#endif
+
  private:
   uint32_t cached_pid_ : 31;
   uint32_t vforked_ : 1;

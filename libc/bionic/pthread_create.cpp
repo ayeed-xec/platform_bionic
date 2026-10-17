@@ -53,6 +53,10 @@
 #include "private/bionic_systrace.h"
 #include "private/bionic_tls.h"
 
+#if defined(__FreeBSD__)
+#include <bits/freebsd/thr.h>
+#endif
+
 // x86 uses segment descriptors rather than a direct pointer to TLS.
 #if defined(__i386__)
 #include <asm/ldt.h>
@@ -418,6 +422,15 @@ __pthread_start(void* arg) {
   return 0;
 }
 
+#if defined(__FreeBSD__)
+extern "C" int __thr_new(thr_param*, int);
+
+// thr_new(2) calls a function that returns void.
+static void __pthread_start_thr(void* arg) {
+  __pthread_start(arg);
+}
+#endif
+
 // A no-op start routine for pthread_create failures where we've created a thread but aren't
 // going to run user code on it. We swap out the user's start routine for this and take advantage
 // of the regular thread teardown to free up resources.
@@ -488,7 +501,23 @@ int pthread_create(pthread_t* thread_out, pthread_attr_t const* attr,
   sigset64_t block_all_mask;
   sigfillset64(&block_all_mask);
   __rt_sigprocmask(SIG_SETMASK, &block_all_mask, &thread->start_mask, sizeof(thread->start_mask));
+#if defined(__FreeBSD__)
+  // thr_new(2) starts the thread at the top of its stack, with tpidr_el0 set
+  // to tls. The kernel stores the thread ID before it returns.
+  (void)flags;
+  long new_tid = 0;
+  thr_param param = {};
+  param.start_func = __pthread_start_thr;
+  param.arg = thread;
+  param.stack_base = static_cast<char*>(thread->attr.stack_base);
+  param.stack_size = static_cast<char*>(child_stack) - param.stack_base;
+  param.tls_base = static_cast<char*>(tls);
+  param.parent_tid = &new_tid;
+  int rc = __thr_new(&param, sizeof(param));
+  if (rc == 0) thread->tid = static_cast<pid_t>(new_tid);
+#else
   int rc = clone(__pthread_start, child_stack, flags, thread, &(thread->tid), tls, &(thread->tid));
+#endif
   __rt_sigprocmask(SIG_SETMASK, &thread->start_mask, nullptr, sizeof(thread->start_mask));
   if (rc == -1) {
     int clone_errno = errno;

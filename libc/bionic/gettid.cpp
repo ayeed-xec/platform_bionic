@@ -31,6 +31,21 @@
 
 #include "pthread_internal.h"
 
+#if defined(__FreeBSD__)
+extern "C" int __thr_self(long* tid);
+
+// FreeBSD thread IDs fit in a pid_t.
+static pid_t __gettid() {
+  long tid;
+  __thr_self(&tid);
+  return static_cast<pid_t>(tid);
+}
+#else
+static pid_t __gettid() {
+  return syscall(__NR_gettid);
+}
+#endif
+
 pid_t gettid() {
   pthread_internal_t* self = __get_thread();
   if (__predict_true(self)) {
@@ -38,8 +53,8 @@ pid_t gettid() {
     if (__predict_true(tid != -1)) {
       return tid;
     }
-    self->tid = syscall(__NR_gettid);
+    self->tid = __gettid();
     return self->tid;
   }
-  return syscall(__NR_gettid);
+  return __gettid();
 }

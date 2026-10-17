@@ -30,6 +30,17 @@
 
 // void _exit_with_stack_teardown(void* stackBase, size_t stackSize)
 ENTRY_PRIVATE(_exit_with_stack_teardown)
+#if defined(__FreeBSD__)
+  mov w8, SYS_munmap
+  svc #0
+  // If munmap failed, we ignore the failure and exit anyway.
+
+  // thr_exit(NULL): a detached thread has no joiner to wake.
+  mov x0, #0
+  mov w8, SYS_thr_exit
+  svc #0
+  // The thr_exit syscall does not return.
+#else
   mov w8, __NR_munmap
   svc #0
   // If munmap failed, we ignore the failure and exit anyway.
@@ -38,6 +49,7 @@ ENTRY_PRIVATE(_exit_with_stack_teardown)
   mov w8, __NR_exit
   svc #0
   // The exit syscall does not return.
+#endif
 END(_exit_with_stack_teardown)
 
 NOTE_GNU_PROPERTY()

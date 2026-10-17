@@ -54,6 +54,17 @@ int pthread_join(pthread_t t, void** return_value) {
     return EINVAL;
   }
 
+#if defined(__FreeBSD__)
+  // We set thread->join_state to THREAD_JOINED with atomic operation,
+  // so no one is going to remove this thread except us.
+
+  // Wait for the thread to actually exit, if it hasn't already:
+  // thr_exit(2) sets exit_word to 1 and wakes us.
+  volatile long* exit_word = &thread->exit_word;
+  while (*exit_word == 0) {
+    __umtx_op(const_cast<long*>(exit_word), UMTX_OP_WAIT, 0, nullptr, nullptr);
+  }
+#else
   pid_t tid = thread->tid;
   volatile int* tid_ptr = &thread->tid;
 
@@ -64,6 +75,7 @@ int pthread_join(pthread_t t, void** return_value) {
   while (*tid_ptr != 0) {
     __futex_wait(tid_ptr, tid, nullptr);
   }
+#endif
 
   if (return_value) {
     *return_value = thread->return_value;

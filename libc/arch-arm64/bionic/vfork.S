@@ -28,8 +28,10 @@
 
 #include <platform/bionic/tls_defines.h>
 #include <private/bionic_asm.h>
+#if !defined(__FreeBSD__)
 #include <asm/signal.h>
 #include <linux/sched.h>
+#endif
 
 ENTRY_WEAK_FOR_NATIVE_BRIDGE(vfork)
     // AAPCS64 defines SME ZA interface as private for vfork(), which means that ZA state on entry
@@ -54,6 +56,23 @@ ENTRY_WEAK_FOR_NATIVE_BRIDGE(vfork)
     ldr     w10, [x9, #20]
     str     w0, [x9, #20]
 
+#if defined(__FreeBSD__)
+    // FreeBSD has vfork(2). With stack MTE, fork(2) makes vfork() act like
+    // fork(), as below. In the child the kernel returns 1 in x1.
+    mov     x8, SYS_vfork
+#if !__has_feature(hwaddress_sanitizer)
+    adrp    x1, __libc_memtag_stack
+    ldrb    w1, [x1, :lo12:__libc_memtag_stack]
+    cbz     w1, 1f
+#endif
+    mov     x8, SYS_fork
+1:
+    svc     #0
+    b.cs    L(not_child)
+    cbz     x1, L(not_child)
+    mov     x0, #0
+    ret
+#else
     mov     x0, #SIGCHLD
 
     // If either HWASan or stack MTE is enabled, set up the clone() flags to
@@ -88,6 +107,7 @@ ENTRY_WEAK_FOR_NATIVE_BRIDGE(vfork)
     // Are we the child? Return if so.
     cbnz    x0, L(not_child)
     ret
+#endif
 
     // Not the child: restore the previous cached_pid_/vforked_ values
     // and then report syscall success/failure as normal.

@@ -41,7 +41,11 @@
 #include "pthread_internal.h"
 
 extern "C" __noreturn void _exit_with_stack_teardown(void*, size_t);
+#if defined(__FreeBSD__)
+extern "C" __noreturn void __thr_exit(long*);
+#else
 extern "C" __noreturn void __exit(int);
+#endif
 extern "C" int __set_tid_address(int*);
 extern "C" void __cxa_thread_finalize();
 
@@ -127,9 +131,11 @@ __attribute__((no_sanitize("memtag"))) void pthread_exit(void* return_value) {
   if (old_state == THREAD_DETACHED) {
     // The thread is detached, no one will use pthread_internal_t after pthread_exit.
     // So we can free mapped space, which includes pthread_internal_t and thread stack.
+#if !defined(__FreeBSD__)
     // First make sure that the kernel does not try to clear the tid field
     // because we'll have freed the memory before the thread actually exits.
     __set_tid_address(nullptr);
+#endif
 
     // pthread_internal_t is freed below with stack, not here.
     __pthread_internal_remove(thread);
@@ -152,5 +158,10 @@ __attribute__((no_sanitize("memtag"))) void pthread_exit(void* return_value) {
   }
   // No need to free mapped space. Either there was no space mapped,
   // or it is left for the pthread_join caller to clean up.
+#if defined(__FreeBSD__)
+  // Only a joinable thread has a joiner to wake.
+  __thr_exit(old_state == THREAD_DETACHED ? nullptr : &thread->exit_word);
+#else
   __exit(0);
+#endif
 }
