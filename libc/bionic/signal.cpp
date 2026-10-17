@@ -45,7 +45,11 @@
 #include "private/SigSetConverter.h"
 
 extern "C" int __rt_sigpending(const sigset64_t*, size_t);
+#if defined(__FreeBSD__)
+extern "C" int __sigqueue(pid_t, int, void*);
+#else
 extern "C" int __rt_sigqueueinfo(pid_t, int, siginfo_t*);
+#endif
 extern "C" int __rt_sigsuspend(const sigset64_t*, size_t);
 extern "C" int __rt_sigtimedwait(const sigset64_t*, siginfo_t*, const timespec*, size_t);
 
@@ -222,12 +226,17 @@ int sigpending64(sigset64_t* set) {
 }
 
 int sigqueue(pid_t pid, int sig, const sigval value) {
+#if defined(__FreeBSD__)
+  // FreeBSD's sigqueue(2) fills in the siginfo: SI_QUEUE, the pid and the uid.
+  return __sigqueue(pid, sig, value.sival_ptr);
+#else
   siginfo_t info = { .si_code = SI_QUEUE };
   info.si_signo = sig;
   info.si_pid = getpid();
   info.si_uid = getuid();
   info.si_value = value;
   return __rt_sigqueueinfo(pid, sig, &info);
+#endif
 }
 
 int sigrelse(int sig) {

@@ -372,10 +372,6 @@ static void __initialize_personality() {
 #endif
 }
 
-#if defined(__FreeBSD__)
-extern "C" int issetugid();
-#endif
-
 void __libc_init_AT_SECURE(char** env) {
 #if defined(__FreeBSD__)
   // FreeBSD has no AT_SECURE: issetugid(2) gives the same information.

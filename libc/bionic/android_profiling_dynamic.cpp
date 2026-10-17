@@ -130,7 +130,7 @@ static void HandleTracedPerfSignal() {
     return;
   }
 
-  sockaddr_un saddr{ AF_UNIX, "/dev/socket/traced_perf" };
+  sockaddr_un saddr{ .sun_family = AF_UNIX, .sun_path = "/dev/socket/traced_perf" };
   size_t addrlen = sizeof(sockaddr_un);
   if (connect(sock_fd.get(), reinterpret_cast<const struct sockaddr*>(&saddr), addrlen) == -1) {
     async_safe_format_log(ANDROID_LOG_ERROR, "libc", "failed to connect to traced_perf socket: %m");
@@ -186,6 +186,11 @@ static void HandleTracedPerfSignal() {
 
 static void HandleSigsysSeccompOverride(int /*signal_number*/, siginfo_t* info,
                                         void* void_context) {
+#if defined(__FreeBSD__)
+  // FreeBSD has no seccomp, so no SIGSYS comes from a seccomp filter.
+  (void)info;
+  (void)void_context;
+#else
   ErrnoRestorer errno_restorer;
   if (info->si_code != SYS_SECCOMP) {
     return;
@@ -213,5 +218,6 @@ static void HandleSigsysSeccompOverride(int /*signal_number*/, siginfo_t* info,
   ctx->uc_mcontext.gregs[REG_RAX] = ret;
 #else
 #error "unsupported architecture"
+#endif
 #endif
 }

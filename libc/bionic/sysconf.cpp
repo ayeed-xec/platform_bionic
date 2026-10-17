@@ -30,6 +30,7 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <pthread.h>
+#include <signal.h>
 #include <stdio.h>  // For FOPEN_MAX.
 #include <sys/auxv.h>
 #include <sys/param.h>
@@ -178,12 +179,22 @@ long sysconf(int name) {
       //
       // So let's resign ourselves to tracking what the kernel actually does.
       // Right now (2019, Linux 5.3) that amounts to:
+#if defined(__FreeBSD__)
+      // FreeBSD has a fixed limit, ARG_MAX (sysctl kern.argmax).
+      return ARG_MAX;
+#else
       return MAX(MIN(__sysconf_rlimit(RLIMIT_STACK) / 4, 3 * _STK_LIM / 4), ARG_MAX);
+#endif
 
     case _SC_AVPHYS_PAGES:      return get_avphys_pages();
     case _SC_CHILD_MAX:         return __sysconf_rlimit(RLIMIT_NPROC);
     case _SC_CLK_TCK:
+#if defined(__FreeBSD__)
+      // FreeBSD has no AT_CLKTCK. libc uses Android's HZ for clock ticks.
+      return HZ;
+#else
       return static_cast<long>(getauxval(AT_CLKTCK));
+#endif
     case _SC_NPROCESSORS_CONF:  return get_nprocs_conf();
     case _SC_NPROCESSORS_ONLN:  return get_nprocs();
     case _SC_OPEN_MAX:          return __sysconf_rlimit(RLIMIT_NOFILE);
@@ -244,7 +255,11 @@ long sysconf(int name) {
     case _SC_DELAYTIMER_MAX:    return _POSIX_DELAYTIMER_MAX;
     case _SC_MQ_OPEN_MAX:       return _POSIX_MQ_OPEN_MAX;        // Minimum requirement.
     case _SC_MQ_PRIO_MAX:       return _POSIX_MQ_PRIO_MAX;        // Minimum requirement.
+#if defined(__FreeBSD__)
+    case _SC_RTSIG_MAX:         return SIGRTMAX - SIGRTMIN + 1;
+#else
     case _SC_RTSIG_MAX:         return RTSIG_MAX;
+#endif
     case _SC_SEM_NSEMS_MAX:     return _POSIX_SEM_NSEMS_MAX;      // Minimum requirement.
     case _SC_SEM_VALUE_MAX:     return SEM_VALUE_MAX;
     case _SC_SIGQUEUE_MAX:      return _POSIX_SIGQUEUE_MAX;       // Minimum requirement.

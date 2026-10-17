@@ -26,13 +26,25 @@
  * SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
 
 #include "private/bionic_fdtrack.h"
 
 extern "C" int __dup(int old_fd);
+#if defined(__FreeBSD__)
+// FreeBSD has no dup3(2): fcntl(2) does the work, as in FreeBSD's libc.
+static int __dup3(int old_fd, int new_fd, int flags) {
+  if (old_fd == new_fd || (flags & ~O_CLOEXEC) != 0) {
+    errno = EINVAL;
+    return -1;
+  }
+  return fcntl(old_fd, (flags & O_CLOEXEC) ? F_DUP2FD_CLOEXEC : F_DUP2FD, new_fd);
+}
+#else
 extern "C" int __dup3(int old_fd, int new_fd, int flags);
+#endif
 
 int dup(int old_fd) {
   return FDTRACK_CREATE(__dup(old_fd));

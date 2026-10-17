@@ -27,6 +27,9 @@
  */
 
 #include <sys/sysinfo.h>
+#if defined(__FreeBSD__)
+#include <sys/auxv.h>
+#endif
 
 #include <dirent.h>
 #include <fcntl.h>
@@ -36,8 +39,22 @@
 
 #include "platform/bionic/page.h"
 #include "private/ScopedReaddir.h"
+#if !defined(__FreeBSD__)
 #include "private/get_cpu_count_from_string.h"
+#endif
 
+#if defined(__FreeBSD__)
+// FreeBSD has no /sys. The kernel gives the number of CPUs in AT_NCPUS, which
+// FreeBSD's sysconf(3) uses too. FreeBSD has no CPU hotplug.
+int get_nprocs_conf() {
+  int cpu_count = static_cast<int>(getauxval(AT_NCPUS));
+  return cpu_count > 0 ? cpu_count : 1;
+}
+
+int get_nprocs() {
+  return get_nprocs_conf();
+}
+#else
 // The __get_cpu_count function needs a 4096 byte buffer to match a page size
 // to avoid malloc/free when reading from a file.
 #pragma clang diagnostic ignored "-Wframe-larger-than="
@@ -68,6 +85,7 @@ int get_nprocs_conf() {
 int get_nprocs() {
   return __get_cpu_count("/sys/devices/system/cpu/online");
 }
+#endif
 
 long get_phys_pages() {
   struct sysinfo si;
