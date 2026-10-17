@@ -39,15 +39,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
-#if !defined(__FreeBSD__)
 #include <sys/socket.h>
-#endif
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <sys/uio.h>
-#if !defined(__FreeBSD__)
 #include <sys/un.h>
-#endif
 #include <time.h>
 #include <unistd.h>
 
@@ -62,7 +58,6 @@ static int __close(int fd) {
   return syscall(SYS_close, fd);
 }
 
-#if !defined(__FreeBSD__)
 // Don't call libc's socket(), since it might call back into us as a result of fdsan/fdtrack.
 #pragma clang poison socket
 static int __socket(int domain, int type, int protocol) {
@@ -71,10 +66,9 @@ static int __socket(int domain, int type, int protocol) {
                            static_cast<unsigned long>(protocol)};
   return syscall(__NR_socketcall, SYS_SOCKET, &args);
 #else
-  return syscall(__NR_socket, domain, type, protocol);
+  return syscall(SYS_socket, domain, type, protocol);
 #endif
 }
-#endif
 
 // Must be kept in sync with frameworks/base/core/java/android/util/EventLog.java.
 enum AndroidEventLogType {
@@ -505,12 +499,6 @@ static int write_stderr(const char* tag, const char* msg) {
   return result;
 }
 
-#if defined(__FreeBSD__)
-// bionic-freebsd has no socket ABI headers yet (M1): log to stderr only.
-static int open_log_socket() {
-  return -1;
-}
-#else
 static int open_log_socket() {
   // ToDo: Ideally we want this to fail if the gid of the current
   // process is AID_LOGD, but will have to wait until we have
@@ -539,7 +527,6 @@ static int open_log_socket() {
 
   return log_fd;
 }
-#endif
 
 struct log_time {  // Wire format
   uint32_t tv_sec;
