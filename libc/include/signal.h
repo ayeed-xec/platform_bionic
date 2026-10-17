@@ -32,7 +32,6 @@
 #include <sys/cdefs.h>
 #include <sys/types.h>
 
-#include <asm/sigcontext.h>
 #include <bits/pthread_types.h>
 #include <bits/signal_types.h>
 #include <bits/timespec.h>
@@ -57,7 +56,6 @@ int __libc_current_sigrtmax(void);
 extern const char* _Nonnull const sys_siglist[_NSIG];
 extern const char* _Nonnull const sys_signame[_NSIG]; /* BSD compatibility. */
 
-#define si_timerid si_tid /* glibc compatibility. */
 
 int sigaction(int __signal, const struct sigaction* _Nullable __new_action, struct sigaction* _Nullable __old_action);
 

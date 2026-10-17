@@ -106,20 +106,19 @@ typedef unsigned long greg_t;
 typedef greg_t gregset_t[NGREG];
 typedef struct user_fpsimd_struct fpregset_t;
 
-#include <asm/sigcontext.h>
-typedef struct sigcontext mcontext_t;
+#include <bits/freebsd/ucontext.h>
 
+/* The FreeBSD layout (sys/_ucontext.h). */
 typedef struct ucontext {
-  unsigned long uc_flags;
-  struct ucontext *uc_link;
-  stack_t uc_stack;
   union {
     sigset_t uc_sigmask;
     sigset64_t uc_sigmask64;
   };
-  /* The kernel adds extra padding after uc_sigmask to match glibc sigset_t on ARM64. */
-  char __padding[128 - sizeof(sigset_t)];
   mcontext_t uc_mcontext;
+  struct ucontext *uc_link;
+  stack_t uc_stack;
+  int uc_flags;
+  int __spare__[4];
 } ucontext_t;
 
 #elif defined(__i386__)

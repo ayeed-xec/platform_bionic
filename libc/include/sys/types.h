@@ -34,53 +34,51 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include <linux/types.h>
-#include <linux/posix_types.h>
 
 #include <bits/pthread_types.h>
 
 __BEGIN_DECLS
 
 /* gids, uids, and pids are all 32-bit. */
-typedef __kernel_gid32_t __gid_t;
+typedef uint32_t __gid_t;
 typedef __gid_t gid_t;
-typedef __kernel_uid32_t __uid_t;
+typedef uint32_t __uid_t;
 typedef __uid_t uid_t;
-typedef __kernel_pid_t __pid_t;
+typedef int32_t __pid_t;
 typedef __pid_t pid_t;
-typedef uint32_t __id_t;
+typedef int64_t __id_t;
 typedef __id_t id_t;
 
-typedef unsigned long blkcnt_t;
-typedef unsigned long blksize_t;
-typedef __kernel_caddr_t caddr_t;
-typedef __kernel_clock_t clock_t;
+typedef int64_t blkcnt_t;
+typedef int32_t blksize_t;
+typedef char* caddr_t;
+typedef long clock_t;
 
-typedef __kernel_clockid_t __clockid_t;
+typedef int32_t __clockid_t;
 typedef __clockid_t clockid_t;
 
-typedef __kernel_daddr_t daddr_t;
-typedef unsigned long fsblkcnt_t;
-typedef unsigned long fsfilcnt_t;
+typedef int64_t daddr_t;
+typedef uint64_t fsblkcnt_t;
+typedef uint64_t fsfilcnt_t;
 
-typedef __kernel_mode_t __mode_t;
+typedef uint16_t __mode_t;
 typedef __mode_t mode_t;
 
-typedef __kernel_key_t __key_t;
+typedef long __key_t;
 typedef __key_t key_t;
 
-typedef __kernel_ino_t __ino_t;
+typedef uint64_t __ino_t;
 typedef __ino_t ino_t;
 
 typedef uint64_t ino64_t;
 
-typedef uint32_t __nlink_t;
+typedef uint64_t __nlink_t;
 typedef __nlink_t nlink_t;
 
 typedef void* __timer_t;
 typedef __timer_t timer_t;
 
-typedef __kernel_suseconds_t __suseconds_t;
+typedef long __suseconds_t;
 typedef __suseconds_t suseconds_t;
 
 /* useconds_t is 32-bit on both LP32 and LP64. */
@@ -95,7 +93,7 @@ typedef uint64_t dev_t;
 #endif
 
 /* This historical accident means that we had a 32-bit time_t on 32-bit architectures. */
-typedef __kernel_time_t __time_t;
+typedef int64_t __time_t;
 typedef __time_t time_t;
 
 /* This historical accident means that we had a 32-bit off_t on 32-bit architectures. */
@@ -125,7 +123,7 @@ typedef __builtin_va_list __va_list;
  * A signed alternative to size_t,
  * generally for cases that return -1 and set errno on error.
  */
-typedef __kernel_ssize_t ssize_t;
+typedef long ssize_t;
 
 /** BSD synonym for unsigned int that's always exposed by historical accident. */
 typedef unsigned int        uint_t;

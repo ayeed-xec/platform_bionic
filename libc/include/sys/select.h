@@ -38,7 +38,7 @@
 #include <sys/cdefs.h>
 #include <sys/types.h>
 
-#include <linux/time.h>
+#include <bits/freebsd/time.h>
 #include <signal.h>
 
 __BEGIN_DECLS

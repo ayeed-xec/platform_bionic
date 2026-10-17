@@ -36,69 +36,13 @@
 #include <sys/cdefs.h>
 
 #include <bits/timespec.h>
-#include <linux/stat.h>
 #include <sys/types.h>
+#include <bits/freebsd/stat.h>
 
 __BEGIN_DECLS
 
-#if defined(__aarch64__) || defined(__riscv)
-#define __STAT64_BODY \
-  dev_t st_dev; \
-  ino_t st_ino; \
-  mode_t st_mode; \
-  nlink_t st_nlink; \
-  uid_t st_uid; \
-  gid_t st_gid; \
-  dev_t st_rdev; \
-  unsigned long __pad1; \
-  off_t st_size; \
-  int st_blksize; \
-  int __pad2; \
-  long st_blocks; \
-  struct timespec st_atim; \
-  struct timespec st_mtim; \
-  struct timespec st_ctim; \
-  unsigned int __unused4; \
-  unsigned int __unused5; \
-
-#elif defined(__x86_64__)
-#define __STAT64_BODY \
-  dev_t st_dev; \
-  ino_t st_ino; \
-  unsigned long st_nlink; \
-  mode_t st_mode; \
-  uid_t st_uid; \
-  gid_t st_gid; \
-  unsigned int __pad0; \
-  dev_t st_rdev; \
-  off_t st_size; \
-  long st_blksize; \
-  long st_blocks; \
-  struct timespec st_atim; \
-  struct timespec st_mtim; \
-  struct timespec st_ctim; \
-  long __pad3[3]; \
-
-#else /* __arm__ || __i386__ */
-#define __STAT64_BODY \
-  unsigned long long st_dev; \
-  unsigned char __pad0[4]; \
-  unsigned long __st_ino; \
-  unsigned int st_mode; \
-  nlink_t st_nlink; \
-  uid_t st_uid; \
-  gid_t st_gid; \
-  unsigned long long st_rdev; \
-  unsigned char __pad3[4]; \
-  long long st_size; \
-  unsigned long st_blksize; \
-  unsigned long long st_blocks; \
-  struct timespec st_atim; \
-  struct timespec st_mtim; \
-  struct timespec st_ctim; \
-  unsigned long long st_ino; \
-
-#endif
+/* The FreeBSD layout (bits/freebsd/stat.h). */
+#define __STAT64_BODY __STAT_BODY
 
 /** The file information returned by fstat()/fstatat()/lstat()/stat(). */
 struct stat { __STAT64_BODY };
@@ -308,13 +252,13 @@ int mkfifoat(int __dir_fd, const char* _Nonnull __path, mode_t __mode) __INTRODU
  * Used in the tv_nsec field of an argument to utimensat()/futimens()
  * to set that time to the current time.
  */
-#define UTIME_NOW  ((1L << 30) - 1L)
+/* UTIME_NOW: FreeBSD value in bits/freebsd/stat.h. */
 
 /**
  * Used in the tv_nsec field of an argument to utimensat()/futimens()
  * to _not_ set that time.
  */
-#define UTIME_OMIT ((1L << 30) - 2L)
+/* UTIME_OMIT: FreeBSD value in bits/freebsd/stat.h. */
 
 /**
  * [utimensat(2)](https://man7.org/linux/man-pages/man2/utimensat.2.html) sets

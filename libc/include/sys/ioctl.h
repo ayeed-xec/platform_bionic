@@ -34,12 +34,10 @@
  */
 
 #include <sys/cdefs.h>
-#include <linux/ioctl.h>
+#include <bits/freebsd/ioccom.h>
 /*
  * NetBSD and glibc's <sys/ioctl.h> provide some of the
  * terminal-related ioctl data structures such as struct winsize.
  */
-#include <linux/termios.h>
-#include <linux/tty.h>
 
 #include <bits/ioctl.h>

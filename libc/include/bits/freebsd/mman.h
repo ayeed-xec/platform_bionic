@@ -1,0 +1,77 @@
+/*
+ * Copyright (c) 2026 <copyright holder>
+ *
+ * SPDX-License-Identifier: BSD-2-Clause
+ */
+
+/*
+ * mmap(2) values.  The kernel reads PROT_*, MAP_*, MS_*, MCL_* and MFD_*,
+ * so they have the values of FreeBSD sys/sys/mman.h; abi_check.c checks
+ * them.  libc translates MADV_*, MREMAP_* and MLOCK_* (ADR 0002
+ * decision 1.3), so they keep the Android values.
+ */
+
+#pragma once
+
+#include <sys/cdefs.h>
+
+#define	PROT_NONE		0x00
+#define	PROT_READ		0x01
+#define	PROT_WRITE		0x02
+#define	PROT_EXEC		0x04
+#define	PROT_MAX(prot)		((prot) << 16)
+
+#define	MAP_SHARED		0x0001
+#define	MAP_PRIVATE		0x0002
+#define	MAP_FIXED		0x0010
+#define	MAP_STACK		0x0400
+#define	MAP_NOSYNC		0x0800
+#define	MAP_FILE		0x0000
+#define	MAP_ANONYMOUS		0x1000
+#define	MAP_GUARD		0x00002000
+#define	MAP_EXCL		0x00004000
+#define	MAP_NOCORE		0x00020000
+#define	MAP_PREFAULT_READ	0x00040000
+#define	MAP_ALIGNED(n)		((n) << 24)
+#define	MAP_ALIGNED_SUPER	MAP_ALIGNED(1)
+/* Linux names. */
+#define	MAP_FIXED_NOREPLACE	(MAP_FIXED | MAP_EXCL)
+#define	MAP_NORESERVE		0	/* FreeBSD reserves no swap. */
+#define	MAP_POPULATE		0	/* A hint only. */
+
+#define	MS_SYNC			0x0000
+#define	MS_ASYNC		0x0001
+#define	MS_INVALIDATE		0x0002
+
+#define	MCL_CURRENT		0x0001
+#define	MCL_FUTURE		0x0002
+
+#define	MFD_CLOEXEC		0x00000001
+#define	MFD_ALLOW_SEALING	0x00000002
+#define	MFD_HUGETLB		0x00000004
+
+/* Android values; the madvise() wrapper translates them. */
+#define	MADV_NORMAL		0
+#define	MADV_RANDOM		1
+#define	MADV_SEQUENTIAL		2
+#define	MADV_WILLNEED		3
+#define	MADV_DONTNEED		4
+#define	MADV_FREE		8
+#define	MADV_REMOVE		9
+#define	MADV_DONTFORK		10
+#define	MADV_DOFORK		11
+#define	MADV_MERGEABLE		12
+#define	MADV_UNMERGEABLE	13
+#define	MADV_HUGEPAGE		14
+#define	MADV_NOHUGEPAGE		15
+#define	MADV_DONTDUMP		16
+#define	MADV_DODUMP		17
+#define	MADV_WIPEONFORK		18
+#define	MADV_KEEPONFORK		19
+#define	MADV_COLD		20
+#define	MADV_PAGEOUT		21
+
+#define	MREMAP_MAYMOVE		1
+#define	MREMAP_FIXED		2
+
+#define	MLOCK_ONFAULT		0x01

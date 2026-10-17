@@ -36,11 +36,9 @@
 
 #include <sys/cdefs.h>
 #include <sys/types.h>
-#include <linux/fadvise.h>
-#include <linux/falloc.h>
-#include <linux/fcntl.h>
-#include <linux/stat.h>
-#include <linux/uio.h>
+#include <bits/freebsd/fcntl.h>
+#include <bits/freebsd/stat.h>
+#include <bits/freebsd/uio.h>
 
 #include <bits/fcntl.h>
 #include <bits/seek_constants.h>

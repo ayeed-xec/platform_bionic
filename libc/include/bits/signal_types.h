@@ -31,7 +31,7 @@
 #include <sys/cdefs.h>
 
 #include <limits.h>
-#include <linux/signal.h>
+#include <bits/freebsd/signal.h>
 #include <sys/types.h>
 
 __BEGIN_DECLS
@@ -53,9 +53,9 @@ __BEGIN_DECLS
  * (32-bit ABI bugs)[https://android.googlesource.com/platform/bionic/+/main/docs/32-bit-abi.md#is-too-small-for-real_time-signals]
  * documentation.
  */
-#define NSIG 65
+#define NSIG 127
 /** A traditional alternative name for NSIG. */
-#define _NSIG 65
+#define _NSIG 127
 
 /*
  * We rewrite the kernel's _NSIG to _KERNEL__NSIG
@@ -66,7 +66,7 @@ __BEGIN_DECLS
  * (Ideally our uapi header rewriter would just hard-code _KERNEL__NSIG to 64.)
  */
 #ifndef _KERNEL__NSIG
-#define _KERNEL__NSIG 64
+#define _KERNEL__NSIG 128
 #endif
 
 typedef int sig_atomic_t;
@@ -103,13 +103,12 @@ typedef struct { unsigned long __bits[64/(8*sizeof(long))]; } sigset64_t;
 #if defined(__LP64__)
 
 #define __SIGACTION_BODY \
-  int sa_flags; \
   union { \
     sighandler_t sa_handler; \
     void (*sa_sigaction)(int, struct siginfo*, void*); \
   }; \
+  int sa_flags; \
   sigset_t sa_mask; \
-  void (*sa_restorer)(void); \
 
 /**
  * Used with sigaction().

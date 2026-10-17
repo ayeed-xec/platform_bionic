@@ -35,7 +35,7 @@
 
 #include <sys/cdefs.h>
 #include <sys/types.h>
-#include <linux/uio.h>
+#include <bits/freebsd/uio.h>
 
 __BEGIN_DECLS
 

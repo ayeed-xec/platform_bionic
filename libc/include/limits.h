@@ -58,7 +58,7 @@
 #include <float.h>
 
 /* Many of the POSIX limits come from the kernel. */
-#include <linux/limits.h>
+#include <bits/freebsd/limits.h>
 
 __BEGIN_DECLS
 

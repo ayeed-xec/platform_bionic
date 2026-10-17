@@ -35,7 +35,7 @@
 
 #include <sys/cdefs.h>
 
-#include <linux/auxvec.h>
+#include <bits/freebsd/auxv.h>
 
 // AT_HWCAP isn't useful without these constants.
 #if __has_include(<asm/hwcap.h>)

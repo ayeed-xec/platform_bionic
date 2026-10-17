@@ -31,7 +31,7 @@
 
 #include <sys/cdefs.h>
 #include <sys/types.h>
-#include <linux/time.h>
+#include <bits/freebsd/time.h>
 
 /* POSIX says <sys/time.h> gets you most of <sys/select.h> and may get you all of it. */
 #include <sys/select.h>
