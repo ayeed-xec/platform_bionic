@@ -266,6 +266,17 @@ int getgroups(int __size, gid_t* _Nullable __list);
 int setgroups(size_t __size, const gid_t* _Nullable __list);
 int getresuid(uid_t* _Nonnull __ruid, uid_t* _Nonnull __euid, uid_t* _Nonnull __suid);
 int getresgid(gid_t* _Nonnull __rgid, gid_t* _Nonnull __egid, gid_t* _Nonnull __sgid);
+
+#if defined(__FreeBSD__)
+/**
+ * [issetugid(2)](https://man.freebsd.org/cgi/man.cgi?query=issetugid&sektion=2)
+ * returns 1 if the process is "tainted" by a set-user-ID or set-group-ID
+ * exec, and 0 otherwise. FreeBSD has no AT_SECURE: this gives the same
+ * information. A FreeBSD-only API, not part of the NDK.
+ */
+int issetugid(void);
+#endif
+
 char* _Nullable getlogin(void);
 
 #if __BIONIC_AVAILABILITY_GUARD(28)

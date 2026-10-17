@@ -181,6 +181,41 @@ typedef struct {
 	Elf64_Word	n_type;
 } Elf64_Nhdr;
 
+/* Symbol versioning. */
+typedef struct {
+	Elf32_Half	vd_version;
+	Elf32_Half	vd_flags;
+	Elf32_Half	vd_ndx;
+	Elf32_Half	vd_cnt;
+	Elf32_Word	vd_hash;
+	Elf32_Word	vd_aux;
+	Elf32_Word	vd_next;
+} Elf32_Verdef;
+
+typedef struct {
+	Elf32_Word	vda_name;
+	Elf32_Word	vda_next;
+} Elf32_Verdaux;
+
+typedef Elf32_Half	Elf32_Versym;
+
+typedef struct {
+	Elf64_Half	vd_version;
+	Elf64_Half	vd_flags;
+	Elf64_Half	vd_ndx;
+	Elf64_Half	vd_cnt;
+	Elf64_Word	vd_hash;
+	Elf64_Word	vd_aux;
+	Elf64_Word	vd_next;
+} Elf64_Verdef;
+
+typedef struct {
+	Elf64_Word	vda_name;
+	Elf64_Word	vda_next;
+} Elf64_Verdaux;
+
+typedef Elf64_Half	Elf64_Versym;
+
 #define	ELF32_R_SYM(i)		((i) >> 8)
 #define	ELF32_R_TYPE(i)		((unsigned char)(i))
 #define	ELF64_R_SYM(i)		((i) >> 32)

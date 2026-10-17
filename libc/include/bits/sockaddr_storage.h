@@ -34,13 +34,23 @@
  */
 
 #include <sys/cdefs.h>
+#include <stdint.h>
 
 #include <bits/sa_family_t.h>
 
 __BEGIN_DECLS
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wnullability-completeness"
+/*
+ * The layout of the FreeBSD kernel ABI (FreeBSD sys/sys/_sockaddr_storage.h):
+ * a length byte, the family, padding, an 8-byte aligned member, more padding.
+ * The structure is 128 bytes long. abi_check.c checks it.
+ */
+#define __SS_MAXSIZE 128
+#define __SS_ALIGNSIZE sizeof(int64_t)
+#define __SS_PAD1SIZE (__SS_ALIGNSIZE - sizeof(unsigned char) - sizeof(sa_family_t))
+#define __SS_PAD2SIZE \
+  (__SS_MAXSIZE - sizeof(unsigned char) - sizeof(sa_family_t) - __SS_PAD1SIZE - __SS_ALIGNSIZE)
+
 /**
  * [sockaddr_storage](https://man7.org/linux/man-pages/man3/sockaddr_storage.3type.html)
  * is a structure large enough to contain any other `sockaddr_*` type, used to
@@ -48,14 +58,11 @@ __BEGIN_DECLS
  * you're passing.
  */
 struct sockaddr_storage {
-  union {
-    struct {
-      sa_family_t ss_family;
-      char __data[128 - sizeof(sa_family_t)];
-    };
-    void* __align;
-  };
+  unsigned char ss_len;
+  sa_family_t ss_family;
+  char __ss_pad1[__SS_PAD1SIZE];
+  int64_t __ss_align;
+  char __ss_pad2[__SS_PAD2SIZE];
 };
-#pragma clang diagnostic pop
 
 __END_DECLS

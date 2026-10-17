@@ -28,6 +28,11 @@
  */
 #define	PROT_MTE		0x20
 #define	PROT_GROWSDOWN		0x01000000
+/*
+ * PROT_BTI keeps the Android value too.  mprotect() applies it with
+ * sysarch(2) ARM64_GUARD_PAGE; mmap(2) rejects it with EINVAL.
+ */
+#define	PROT_BTI		0x10
 
 #define	MAP_SHARED		0x0001
 #define	MAP_PRIVATE		0x0002

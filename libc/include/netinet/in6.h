@@ -31,7 +31,15 @@
 
 #include <sys/cdefs.h>
 
-#include <linux/in6.h>
+#include <endian.h>
+#include <stdint.h>
+
+/*
+ * struct in6_addr, struct sockaddr_in6, the IPV6_* options, INET6_ADDRSTRLEN,
+ * struct ipv6_mreq and struct in6_pktinfo come from this header. They have the
+ * FreeBSD values and layouts, because the FreeBSD kernel reads them.
+ */
+#include <bits/freebsd/in6.h>
 
 __BEGIN_DECLS
 
@@ -93,15 +101,8 @@ __BEGIN_DECLS
 #define IN6_ARE_ADDR_EQUAL(a, b) \
   (__builtin_memcmp(&(a)->s6_addr[0], &(b)->s6_addr[0], sizeof(struct in6_addr)) == 0)
 
-#define INET6_ADDRSTRLEN 46
-
-#define IPV6_JOIN_GROUP IPV6_ADD_MEMBERSHIP
-#define IPV6_LEAVE_GROUP IPV6_DROP_MEMBERSHIP
-
 #define IN6ADDR_ANY_INIT {{{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}}}
 #define IN6ADDR_LOOPBACK_INIT {{{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1}}}
-
-#define ipv6mr_interface ipv6mr_ifindex
 
 __END_DECLS
 

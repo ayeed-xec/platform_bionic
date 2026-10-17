@@ -34,7 +34,7 @@
  */
 
 #include <sys/cdefs.h>
-#include <linux/kernel.h>
+#include <bits/freebsd/sysinfo.h>
 
 __BEGIN_DECLS
 

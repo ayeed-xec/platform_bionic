@@ -183,6 +183,11 @@ typedef Elf64_Xword Elf64_Relr;
 #define GRP_MASKOS   0x0ff00000
 #define GRP_MASKPROC 0xf0000000
 
+#if !defined(PT_GNU_PROPERTY)
+/* The GNU property segment. FreeBSD's <sys/elf_common.h> does not have it yet. */
+#define PT_GNU_PROPERTY 0x6474e553
+#endif
+
 /* http://www.sco.com/developers/gabi/latest/ch4.sheader.html */
 /*
  * Standard replacement for SHT_ANDROID_RELR.

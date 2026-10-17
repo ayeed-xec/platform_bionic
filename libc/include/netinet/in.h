@@ -34,16 +34,15 @@
 #include <netinet/in6.h>
 #include <sys/socket.h>
 
-#include <linux/in.h>
-#include <linux/in6.h>
-#include <linux/ipv6.h>
-#include <linux/socket.h>
+/*
+ * The IPPROTO_*, IP_*, MCAST_*, INADDR_* and IN_* names, INET_ADDRSTRLEN,
+ * in_port_t, struct sockaddr_in and the IPv4 multicast structures come from
+ * this header. They have the FreeBSD values and layouts, because the FreeBSD
+ * kernel reads them. The IPv6 names come from <netinet/in6.h>.
+ */
+#include <bits/freebsd/in.h>
 
 __BEGIN_DECLS
-
-#define INET_ADDRSTRLEN 16
-
-typedef uint16_t in_port_t;
 
 int bindresvport(int __fd, struct sockaddr_in* _Nullable __sin);
 

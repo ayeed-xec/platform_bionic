@@ -37,7 +37,10 @@
 
 __BEGIN_DECLS
 
-/** The type of fields like `sa_family`. */
-typedef unsigned short sa_family_t;
+/**
+ * The type of fields like `sa_family`.
+ * It has 8 bits, because the FreeBSD kernel ABI puts a length byte before it.
+ */
+typedef unsigned char sa_family_t;
 
 __END_DECLS

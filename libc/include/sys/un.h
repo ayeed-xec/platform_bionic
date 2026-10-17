@@ -36,7 +36,7 @@
 #include <sys/cdefs.h>
 
 #include <bits/sa_family_t.h>
-#include <linux/un.h>
+#include <bits/freebsd/un.h>
 
 __BEGIN_DECLS
 
