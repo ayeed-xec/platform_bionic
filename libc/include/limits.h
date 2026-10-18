@@ -105,7 +105,7 @@ __BEGIN_DECLS
  * POSIX 2024's name for NSIG.
  * See the NSIG documentation for an explanation and warnings.
  */
-#define NSIG_MAX 65
+#define NSIG_MAX 127
 
 /** Maximum number of bytes in a multibyte character. */
 #define MB_LEN_MAX 4
