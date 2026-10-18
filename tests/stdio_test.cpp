@@ -1288,6 +1288,16 @@ TEST(STDIO_TEST, popen_return_value_signal) {
 }
 
 TEST(STDIO_TEST, getc) {
+#if defined(__FreeBSD__)
+  // FreeBSD has no /proc/version, so read the ELF identification of a program.
+  FILE* fp = fopen(BIN_DIR "sh", "r");
+  ASSERT_TRUE(fp != nullptr);
+  ASSERT_EQ(ELFMAG0, getc(fp));
+  ASSERT_EQ(ELFMAG1, getc(fp));
+  ASSERT_EQ(ELFMAG2, getc(fp));
+  ASSERT_EQ(ELFMAG3, getc(fp));
+  ASSERT_EQ(ELFCLASS64, getc(fp));
+#else
   FILE* fp = fopen("/proc/version", "r");
   ASSERT_TRUE(fp != nullptr);
   ASSERT_EQ('L', getc(fp));
@@ -1295,6 +1305,7 @@ TEST(STDIO_TEST, getc) {
   ASSERT_EQ('n', getc(fp));
   ASSERT_EQ('u', getc(fp));
   ASSERT_EQ('x', getc(fp));
+#endif
   fclose(fp);
 }
 
