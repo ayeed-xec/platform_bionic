@@ -944,9 +944,6 @@ TEST(dlfcn, dladdr_executable) {
   // The address should be the exact address of the symbol.
   ASSERT_EQ(info.dli_saddr, sym);
 
-#if defined(__FreeBSD__)
-  GTEST_SKIP() << "bionic-freebsd: no /proc/self/maps";
-#else
   std::vector<map_record> maps;
   ASSERT_TRUE(Maps::parse_maps(&maps));
 
@@ -960,7 +957,6 @@ TEST(dlfcn, dladdr_executable) {
 
   // The base address should be the address we were loaded at.
   ASSERT_EQ(info.dli_fbase, base_address);
-#endif
 
   ASSERT_EQ(0, dlclose(self));
 }

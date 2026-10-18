@@ -169,6 +169,60 @@ class Maps {
 
 extern "C" pid_t gettid();
 
+#elif defined(__FreeBSD__)
+
+// No /proc/self/maps: kern.proc.vmmap gives one kinfo_vmentry for each entry
+// of the VM map. The kernel packs the records, so step by kve_structsize.
+class Maps {
+ public:
+  static bool parse_maps(std::vector<map_record>* maps) {
+    maps->clear();
+
+    int mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_VMMAP, getpid()};
+    std::vector<char> buf;
+    size_t size;
+    while (true) {
+      size = 0;
+      if (sysctl(mib, 4, nullptr, &size, nullptr, 0) == -1) return false;
+      // Leave room for mappings made before the second call.
+      size += size / 4;
+      buf.resize(size);
+      if (sysctl(mib, 4, buf.data(), &size, nullptr, 0) == 0) break;
+      if (errno != ENOMEM) return false;
+    }
+
+    size_t record_size;
+    for (size_t pos = 0; pos < size; pos += record_size) {
+      const kinfo_vmentry* kve = reinterpret_cast<const kinfo_vmentry*>(buf.data() + pos);
+      record_size = kve->kve_structsize;
+      if (record_size <= offsetof(kinfo_vmentry, kve_path) || record_size > size - pos) {
+        return false;
+      }
+
+      map_record record;
+      record.addr_start = kve->kve_start;
+      record.addr_end = kve->kve_end;
+      record.perms = 0;
+      if (kve->kve_protection & KVME_PROT_READ) {
+        record.perms |= PROT_READ;
+      }
+      if (kve->kve_protection & KVME_PROT_WRITE) {
+        record.perms |= PROT_WRITE;
+      }
+      if (kve->kve_protection & KVME_PROT_EXEC) {
+        record.perms |= PROT_EXEC;
+      }
+      record.offset = kve->kve_offset;
+      record.device = kve->kve_vn_fsid;
+      record.inode = kve->kve_vn_fileid;
+      record.pathname = kve->kve_path;
+      maps->push_back(record);
+    }
+
+    return true;
+  }
+};
+
 #endif
 
 static inline void WaitUntilThreadSleep(std::atomic<pid_t>& tid) {
