@@ -32,10 +32,23 @@
 #include "private/SigSetConverter.h"
 #include "private/bionic_fdtrack.h"
 
+#if defined(__FreeBSD__)
+#include "freebsd/specialfd.h"
+
+// FreeBSD makes an epoll instance with __specialfd(2), and has one wait
+// call that takes a timespec and no sigset size.
+extern "C" int __epoll_pwait2(int, epoll_event*, int, const timespec*, const sigset64_t*);
+
+static int __epoll_create1(int flags) {
+  specialfd_epoll args = {.flags = flags};
+  return __specialfd(SPECIALFD_EPOLL, &args, sizeof(args));
+}
+#else
 extern "C" int __epoll_create1(int flags);
 extern "C" int __epoll_pwait(int, epoll_event*, int, int, const sigset64_t*, size_t);
 extern "C" int __epoll_pwait2(int, epoll_event*, int, const __kernel_timespec*, const sigset64_t*,
                               size_t);
+#endif
 
 int epoll_create(int size) {
   if (size <= 0) {
@@ -55,7 +68,19 @@ int epoll_pwait(int fd, epoll_event* events, int max_events, int timeout, const 
 }
 
 int epoll_pwait64(int fd, epoll_event* events, int max_events, int timeout, const sigset64_t* ss) {
+#if defined(__FreeBSD__)
+  // Any negative timeout waits without a limit.
+  timespec ts;
+  timespec* ts_ptr = nullptr;
+  if (timeout >= 0) {
+    ts.tv_sec = timeout / 1000;
+    ts.tv_nsec = (timeout % 1000) * 1000000;
+    ts_ptr = &ts;
+  }
+  return __epoll_pwait2(fd, events, max_events, ts_ptr, ss);
+#else
   return __epoll_pwait(fd, events, max_events, timeout, ss, sizeof(*ss));
+#endif
 }
 
 int epoll_pwait2(int fd, epoll_event* events, int max_events, const timespec* timeout,
@@ -66,6 +91,9 @@ int epoll_pwait2(int fd, epoll_event* events, int max_events, const timespec* ti
 
 int epoll_pwait2_64(int fd, epoll_event* events, int max_events, const timespec* timeout,
                     const sigset64_t* ss) {
+#if defined(__FreeBSD__)
+  return __epoll_pwait2(fd, events, max_events, timeout, ss);
+#else
   // epoll_pwait2() is our first syscall that assumes a 64-bit time_t even for
   // 32-bit processes, so for ILP32 we need to convert.
   // TODO: factor this out into a TimeSpecConverter as/when we get more syscalls like this.
@@ -81,6 +109,7 @@ int epoll_pwait2_64(int fd, epoll_event* events, int max_events, const timespec*
   }
 #endif
   return __epoll_pwait2(fd, events, max_events, kts_ptr, ss, sizeof(*ss));
+#endif
 }
 
 int epoll_wait(int fd, struct epoll_event* events, int max_events, int timeout) {

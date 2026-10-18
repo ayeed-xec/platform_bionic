@@ -31,7 +31,18 @@
 
 #include "private/bionic_fdtrack.h"
 
+#if defined(__FreeBSD__)
+#include "freebsd/specialfd.h"
+
+// FreeBSD makes an eventfd with __specialfd(2).  The flag values are the
+// FreeBSD ones (<linux/eventfd.h> of linux-compat).
+static int __eventfd(unsigned int initval, int flags) {
+  specialfd_eventfd args = {.initval = initval, .flags = flags};
+  return __specialfd(SPECIALFD_EVENTFD, &args, sizeof(args));
+}
+#else
 extern "C" int __eventfd(unsigned int initval, int flags);
+#endif
 
 int eventfd(unsigned int initval, int flags) {
   return FDTRACK_CREATE(__eventfd(initval, flags));

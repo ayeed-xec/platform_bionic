@@ -571,6 +571,8 @@
 #define	SYS_pdrfork	600
 #define	SYS_pdwait	601
 #define	SYS_renameat2	602
-#define	SYS_MAXSYSCALL	603
+#define	SYS_epoll_ctl	610
+#define	SYS_epoll_pwait2	611
+#define	SYS_MAXSYSCALL	612
 
 #endif /* !_BITS_FREEBSD_SYSCALL_NUMBERS_H_ */

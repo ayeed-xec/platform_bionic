@@ -200,3 +200,9 @@ __timer_getoverrun:ktimer_getoverrun(int)           arm64  N  timer_getoverrun
 __timer_gettime:ktimer_gettime(int, struct itimerspec*)  arm64  N  timer_gettime
 __timer_settime:ktimer_settime(int, int, const struct itimerspec*, struct itimerspec*)  arm64  N  timer_settime
 __gettimeofday:gettimeofday(struct timeval*, struct timezone*)  arm64  E  gettimeofday
+
+# Events.  epoll_create1() and eventfd() call __specialfd(); epoll_wait() and
+# epoll_pwait() call epoll_pwait2() with the timeout in a timespec.
+__specialfd(int, const void*, size_t)               arm64  F  -
+epoll_ctl(int, int, int, struct epoll_event*)       arm64  E  epoll_ctl
+__epoll_pwait2:epoll_pwait2(int, struct epoll_event*, int, const struct timespec*, const sigset_t*)  arm64  E  epoll_pwait2
