@@ -38,36 +38,6 @@
 extern "C" int __ppoll(pollfd*, unsigned int, timespec*, const sigset64_t*, size_t);
 #if defined(__FreeBSD__)
 extern "C" int __pselect(int, fd_set*, fd_set*, fd_set*, const timespec*, const sigset64_t*);
-
-// Linux's pselect6 writes the remaining time back into the timeout, and
-// select() hands it to the caller. FreeBSD's pselect(2) takes the signal
-// mask directly and leaves the timeout alone, so measure the elapsed time.
-static int __pselect6(int fd_count, fd_set* read_fds, fd_set* write_fds, fd_set* error_fds,
-                      timespec* ts, void*) {
-  timespec start;
-  if (ts != nullptr) clock_gettime(CLOCK_MONOTONIC, &start);
-  int result = __pselect(fd_count, read_fds, write_fds, error_fds, ts, nullptr);
-  if (ts != nullptr && (result != -1 || errno == EINTR)) {
-    int saved_errno = errno;
-    timespec now;
-    clock_gettime(CLOCK_MONOTONIC, &now);
-    time_t sec = ts->tv_sec - (now.tv_sec - start.tv_sec);
-    long nsec = ts->tv_nsec - (now.tv_nsec - start.tv_nsec);
-    while (nsec < 0) {
-      nsec += 1000000000;
-      --sec;
-    }
-    while (nsec >= 1000000000) {
-      nsec -= 1000000000;
-      ++sec;
-    }
-    if (sec < 0) sec = nsec = 0;
-    ts->tv_sec = sec;
-    ts->tv_nsec = nsec;
-    errno = saved_errno;
-  }
-  return result;
-}
 #else
 extern "C" int __pselect6(int, fd_set*, fd_set*, fd_set*, timespec*, void*);
 #endif
@@ -123,11 +93,17 @@ int select(int fd_count, fd_set* read_fds, fd_set* write_fds, fd_set* error_fds,
     }
     ts_ptr = &ts;
   }
+#if defined(__FreeBSD__)
+  // FreeBSD's pselect(2) leaves the timeout alone, so select() does too, as
+  // FreeBSD's own select(2) does. POSIX allows both.
+  return __pselect(fd_count, read_fds, write_fds, error_fds, ts_ptr, nullptr);
+#else
   int result = __pselect6(fd_count, read_fds, write_fds, error_fds, ts_ptr, nullptr);
   if (tv != nullptr) {
     timeval_from_timespec(*tv, ts);
   }
   return result;
+#endif
 }
 
 // The underlying pselect6(2) system call only takes `sigset64_t`.

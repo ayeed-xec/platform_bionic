@@ -116,9 +116,15 @@ TEST(sys_select, select_smoke) {
   FD_ZERO(&r);
   FD_SET(fd, &r);
   ASSERT_EQ(1, select(fd+1, &r, nullptr, nullptr, &tv));
+#if defined(__FreeBSD__)
+  // FreeBSD's select(2) leaves the timeout unchanged (select.2, BUGS); POSIX allows both.
+  ASSERT_EQ(1, tv.tv_sec);
+  ASSERT_EQ(0, tv.tv_usec);
+#else
   // Both tv_sec and tv_nsec should have been updated.
   ASSERT_EQ(0, tv.tv_sec);
   ASSERT_NE(0, tv.tv_usec);
+#endif
 
   DelayedWriteCleanup(pid, fd);
 }
