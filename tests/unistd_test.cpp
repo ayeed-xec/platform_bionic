@@ -1755,14 +1755,10 @@ TEST(UNISTD_TEST, fexecve_args) {
 }
 
 TEST(UNISTD_TEST, getlogin_r) {
-#if defined(__FreeBSD__)
-  GTEST_SKIP() << "bionic-freebsd: tier 0 has no passwd database (grp_pwd.cpp)";
-#else
   char buf[LOGIN_NAME_MAX] = {};
   EXPECT_EQ(ERANGE, getlogin_r(buf, 0));
   EXPECT_EQ(0, getlogin_r(buf, sizeof(buf)));
   EXPECT_STREQ(getlogin(), buf);
-#endif
 }
 
 TEST(UNISTD_TEST, swab) {
