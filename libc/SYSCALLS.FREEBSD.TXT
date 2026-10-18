@@ -154,6 +154,7 @@ __thr_new:thr_new(struct thr_param*, int)           arm64  F  -
 __thr_self:thr_self(long*)                          arm64  N  gettid
 __thr_kill:thr_kill(long, int)                      arm64  F  -
 tgkill:thr_kill2(pid_t, int, int)                   arm64  N  tgkill
+__thr_get_name:thr_get_name(long, char*, size_t)    arm64  F  -
 __thr_set_name:thr_set_name(long, const char*)      arm64  F  -
 __umtx_op|_umtx_op:_umtx_op(void*, int, unsigned long, void*, void*)  arm64  F  -
 __cpuset_getaffinity:cpuset_getaffinity(int, int, id_t, size_t, void*)  arm64  N  sched_getaffinity

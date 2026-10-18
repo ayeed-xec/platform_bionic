@@ -33,9 +33,9 @@
  *
  * PR_SET_NAME	thr_set_name(2) on the calling thread.  The name is cut to
  *		15 bytes, as on Linux.
- * PR_GET_NAME	ki_tdname of the calling thread, from the kern.proc.pid
- *		sysctl(3).  pthread_getname_np(3) uses the same code for
- *		the other threads of the process.
+ * PR_GET_NAME	thr_get_name(2) on the calling thread, cut to 15 bytes.
+ *		pthread_getname_np(3) uses the same code for the other
+ *		threads of the process.
  * PR_GET_DUMPABLE, PR_SET_DUMPABLE
  *		procctl(2) PROC_TRACE_STATUS and PROC_TRACE_CTL: on FreeBSD,
  *		this switch controls both core dumps and ptrace(2).  A
@@ -44,10 +44,8 @@
 
 #include <errno.h>
 #include <stdarg.h>
-#include <stdlib.h>
 #include <string.h>
 #include <sys/prctl.h>
-#include <sys/sysctl.h>
 #include <unistd.h>
 
 /* FreeBSD <sys/wait.h> idtype_t and <sys/procctl.h> values. */
@@ -57,58 +55,30 @@
 #define	PROC_TRACE_CTL_ENABLE		1
 #define	PROC_TRACE_CTL_DISABLE		2
 
+/* FreeBSD <sys/param.h>: the kernel keeps 19 bytes of a thread name. */
+#define	FREEBSD_MAXCOMLEN		19
+
 /* Linux keeps 16 bytes of a thread name, with the terminating NUL. */
 #define	TASK_COMM_LEN			16
 
 int	__freebsd_get_thread_name(pid_t, char *);
 int	__procctl(int, id_t, int, void *);
+int	__thr_get_name(long, char *, size_t);
 int	__thr_set_name(long, const char *);
 
 /*
  * Copy the name of thread tid of this process to buf, which has room for
- * TASK_COMM_LEN bytes.  kern.proc.pid with KERN_PROC_INC_THREAD gives one
- * struct kinfo_proc for each thread.
+ * TASK_COMM_LEN bytes.  Linux keeps 15 bytes of a name, so a longer FreeBSD
+ * name is cut to that.
  */
 int
 __freebsd_get_thread_name(pid_t tid, char *buf)
 {
-	struct kinfo_proc *kp;
-	size_t i, len;
-	int error, mib[4];
+	char name[FREEBSD_MAXCOMLEN + 1];
 
-	mib[0] = CTL_KERN;
-	mib[1] = KERN_PROC;
-	mib[2] = KERN_PROC_PID | KERN_PROC_INC_THREAD;
-	mib[3] = getpid();
-	for (;;) {
-		if (sysctl(mib, 4, NULL, &len, NULL, 0) != 0)
-			return (-1);
-		/* Leave room for threads that start before the second call. */
-		len += 4 * sizeof(*kp);
-		if ((kp = malloc(len)) == NULL)
-			return (-1);
-		if (sysctl(mib, 4, kp, &len, NULL, 0) == 0)
-			break;
-		error = errno;
-		free(kp);
-		if (error != ENOMEM) {
-			errno = error;
-			return (-1);
-		}
-	}
-	error = ESRCH;
-	for (i = 0; i < len / sizeof(*kp); i++) {
-		if (kp[i].ki_tid == tid) {
-			strlcpy(buf, kp[i].ki_tdname, TASK_COMM_LEN);
-			error = 0;
-			break;
-		}
-	}
-	free(kp);
-	if (error != 0) {
-		errno = error;
+	if (__thr_get_name(tid, name, sizeof(name)) != 0)
 		return (-1);
-	}
+	strlcpy(buf, name, TASK_COMM_LEN);
 	return (0);
 }
 
