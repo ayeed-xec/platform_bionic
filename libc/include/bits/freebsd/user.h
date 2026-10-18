@@ -172,12 +172,15 @@ struct kinfo_proc {
 	long		ki_tdflags;
 };
 
+/* kf_type values. */
+#define	KF_TYPE_SHM	8
+
 /* kf_status flags. */
 #define	KF_ATTR_VALID	0x0001
 
 /*
- * Of the kf_un union, only kf_file (a vnode) is here.  No other member is
- * larger, so the size and the offsets do not change.
+ * Of the kf_un union, only kf_file (a vnode or a shm object) is here.  No
+ * other member is larger, so the size and the offsets do not change.
  */
 struct kinfo_file {
 	int		kf_structsize;

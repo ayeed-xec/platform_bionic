@@ -31,9 +31,16 @@
 
 #include "private/bionic_fdtrack.h"
 
+#if defined(__FreeBSD__)
+#include "freebsd/socket_type.h"
+#endif
+
 extern "C" int __socketpair(int domain, int type, int protocol, int sv[2]);
 
 int socketpair(int domain, int type, int protocol, int sv[2]) {
+#if defined(__FreeBSD__)
+  type = __freebsd_socket_type(domain, type);
+#endif
   int rc = __socketpair(domain, type, protocol, sv);
   if (rc == 0) {
     FDTRACK_CREATE(sv[0]);

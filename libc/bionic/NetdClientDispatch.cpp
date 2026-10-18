@@ -20,6 +20,10 @@
 
 #include "private/bionic_fdtrack.h"
 
+#if defined(__FreeBSD__)
+#include "freebsd/socket_type.h"
+#endif
+
 extern "C" int __accept4(int, sockaddr*, socklen_t*, int);
 extern "C" int __connect(int, const sockaddr*, socklen_t);
 extern "C" int __sendmmsg(int, const mmsghdr*, unsigned int, int);
@@ -70,5 +74,8 @@ ssize_t sendto(int fd, const void* buf, size_t n, int flags,
 }
 
 int socket(int domain, int type, int protocol) {
+#if defined(__FreeBSD__)
+  type = __freebsd_socket_type(domain, type);
+#endif
   return FDTRACK_CREATE(__netdClientDispatch.socket(domain, type, protocol));
 }
