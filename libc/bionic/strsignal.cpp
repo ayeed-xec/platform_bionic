@@ -46,8 +46,20 @@ const char* const sys_signame[NSIG] = {
 #include "private/bionic_sigdefs.h"
 };
 
+// The last regular signal: SIGSYS on Linux.  FreeBSD numbers SIGSYS 12, and
+// its regular signals go on to SIGLIBRT (33).
+#if defined(__FreeBSD__)
+static constexpr int kLastRegularSignal = SIGLIBRT;
+#else
+static constexpr int kLastRegularSignal = SIGSYS;
+#endif
+
 extern "C" __LIBC_HIDDEN__ const char* __strsignal(int signal_number, char* buf, size_t buf_len) {
+#if defined(__FreeBSD__)
+  if (signal_number >= SIGHUP && signal_number <= kLastRegularSignal) {
+#else
   if (signal_number >= SIGHUP && signal_number < SIGSYS) {
+#endif
     return sys_siglist[signal_number];
   }
   const char* prefix = "Unknown";
@@ -68,7 +80,7 @@ char* strsignal(int signal_number) {
 }
 
 int sig2str(int sig, char* str) {
-  if (sig >= SIGHUP && sig <= SIGSYS) {
+  if (sig >= SIGHUP && sig <= kLastRegularSignal) {
     strcpy(str, sys_signame[sig]);
     return 0;
   }
@@ -93,7 +105,7 @@ int sig2str(int sig, char* str) {
 
 int str2sig(const char* str, int* sig) {
   // A name in our list, like "SEGV"?
-  for (size_t i = SIGHUP; i <= SIGSYS; ++i) {
+  for (size_t i = SIGHUP; i <= kLastRegularSignal; ++i) {
     if (!strcmp(str, sys_signame[i])) {
       *sig = i;
       return 0;
@@ -128,7 +140,7 @@ int str2sig(const char* str, int* sig) {
   // Reject out of range integers (like "666"),
   // and out of range real-time signals (like "RTMIN+666" or "RTMAX-666").
   int result = base + offset;
-  bool regular = (base == 0 && result >= SIGHUP && result <= SIGSYS);
+  bool regular = (base == 0 && result >= SIGHUP && result <= kLastRegularSignal);
   bool realtime = (result >= SIGRTMIN && result <= SIGRTMAX);
   if (!regular && !realtime) return -1;
 

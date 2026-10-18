@@ -143,7 +143,13 @@ TEST(STRING_TEST, strsignal) {
   // A real-time signal.
   ASSERT_STREQ("Real-time signal 14", strsignal(SIGRTMIN + 14));
   // One of the signals the C library keeps to itself.
+#if defined(__FreeBSD__)
+  ASSERT_STREQ("Unknown signal 65", strsignal(65));  // __SIGRTMIN
+  // FreeBSD's regular signals go on to SIGLIBRT (33).
+  ASSERT_STREQ("Real-time library interrupt", strsignal(SIGLIBRT));
+#else
   ASSERT_STREQ("Unknown signal 32", strsignal(32));  // __SIGRTMIN
+#endif
 
   // Errors.
   ASSERT_STREQ("Unknown signal -1", strsignal(-1)); // Too small.

@@ -563,8 +563,14 @@ TEST(signal, sys_siglist) {
 
 TEST(signal, limits) {
   // These come from the kernel.
+#if defined(__FreeBSD__)
+  // FreeBSD numbers its real-time signals 65 to 126.
+  ASSERT_EQ(65, __SIGRTMIN);
+  ASSERT_EQ(126, __SIGRTMAX);
+#else
   ASSERT_EQ(32, __SIGRTMIN);
   ASSERT_EQ(64, __SIGRTMAX);
+#endif
 
   // We reserve a non-zero number at the bottom for ourselves.
   ASSERT_GT(SIGRTMIN, __SIGRTMIN);
@@ -960,7 +966,14 @@ TEST(signal, sig2str) {
   ASSERT_EQ(0, sig2str(SIGRTMIN, str));
   ASSERT_STREQ("RTMIN", str);
   // One of the signals the C library keeps to itself.
+#if defined(__FreeBSD__)
+  ASSERT_EQ(-1, sig2str(65, str));  // __SIGRTMIN
+  // FreeBSD's regular signals go on to SIGLIBRT (33).
+  ASSERT_EQ(0, sig2str(SIGLIBRT, str));
+  ASSERT_STREQ("LIBRT", str);
+#else
   ASSERT_EQ(-1, sig2str(32, str));  // __SIGRTMIN
+#endif
 
   // Errors.
   ASSERT_EQ(-1, sig2str(-1, str));    // Too small.
@@ -985,9 +998,20 @@ TEST(signal, str2sig) {
   ASSERT_EQ(0, str2sig("HUP", &sig));
   ASSERT_EQ(SIGHUP, sig);
 
+#if defined(__FreeBSD__)
+  // FreeBSD's regular signals go on to SIGLIBRT (33).
+  sig = -1;
+  ASSERT_EQ(0, str2sig("LIBRT", &sig));
+  ASSERT_EQ(SIGLIBRT, sig);
+#endif
+
   // A real-time signal, by number.
   sig = -1;
+#if defined(__FreeBSD__)
+  ASSERT_EQ(0, str2sig("126", &sig));
+#else
   ASSERT_EQ(0, str2sig("64", &sig));
+#endif
   ASSERT_EQ(SIGRTMAX, sig);
 
   // A real-time signal, by name and offset.
@@ -1005,7 +1029,11 @@ TEST(signal, str2sig) {
   ASSERT_EQ(0, str2sig("RTMIN+0", &sig));
   ASSERT_EQ(SIGRTMIN, sig);
   // One of the signals the C library keeps to itself, numerically.
+#if defined(__FreeBSD__)
+  ASSERT_EQ(-1, str2sig("65", &sig));  // __SIGRTMIN
+#else
   ASSERT_EQ(-1, str2sig("32", &sig));  // __SIGRTMIN
+#endif
 
   // Special cases.
   sig = -1;
