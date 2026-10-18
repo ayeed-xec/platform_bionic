@@ -36,7 +36,7 @@
 #include "private/ErrnoRestorer.h"
 
 #if defined(__FreeBSD__)
-extern "C" int __rt_tgsigqueueinfo(pid_t, pid_t, int, void*);
+extern "C" int __sigqueue(pid_t, int, void*);
 #endif
 #include "pthread_internal.h"
 
@@ -44,10 +44,15 @@ __BIONIC_WEAK_FOR_NATIVE_BRIDGE
 int pthread_sigqueue(pthread_t t, int sig, const union sigval value) {
   ErrnoRestorer errno_restorer;
 
-  pid_t pid = getpid();
-
   pid_t tid = __pthread_internal_gettid(t, "pthread_sigqueue");
   if (tid == -1) return ESRCH;
+
+#if defined(__FreeBSD__)
+  // sigqueue(2) with __SIGQUEUE_TID queues the signal to a thread of this
+  // process. The kernel fills in SI_QUEUE, the pid and the uid.
+  return __sigqueue(tid, sig | __SIGQUEUE_TID, value.sival_ptr) ? errno : 0;
+#else
+  pid_t pid = getpid();
 
   siginfo_t siginfo = { .si_code = SI_QUEUE };
   siginfo.si_signo = sig;
@@ -55,10 +60,6 @@ int pthread_sigqueue(pthread_t t, int sig, const union sigval value) {
   siginfo.si_uid = getuid();
   siginfo.si_value = value;
 
-#if defined(__FreeBSD__)
-  // Nothing on FreeBSD queues a signal to one thread; see freebsd/no_equivalent.c.
-  return __rt_tgsigqueueinfo(pid, tid, sig, &siginfo) ? errno : 0;
-#else
   return syscall(__NR_rt_tgsigqueueinfo, pid, tid, sig, &siginfo) ? errno : 0;
 #endif
 }
