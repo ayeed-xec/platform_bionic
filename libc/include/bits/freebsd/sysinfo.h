@@ -26,10 +26,10 @@
  */
 
 /*
- * struct sysinfo of sysinfo(2).  FreeBSD has no sysinfo(2): libc emulates
- * it, so the structure has the Android (LP64) layout, as in FreeBSD's
- * Linux emulation (sys/compat/linux/linux_misc.c, struct l_sysinfo).  On
- * LP64 the Linux padding at the end is empty.
+ * struct sysinfo of sysinfo(2).  FreeBSD has no sysinfo(2): libc fills the
+ * structure from the vm.sysinfo sysctl, so it has the Android (LP64)
+ * layout, as in FreeBSD's Linux emulation (sys/compat/linux/linux_misc.c,
+ * struct l_sysinfo).  On LP64 the Linux padding at the end is empty.
  */
 
 #pragma once

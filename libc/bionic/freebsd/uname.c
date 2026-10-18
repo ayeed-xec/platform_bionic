@@ -27,7 +27,8 @@
 
 /*
  * uname(3), sethostname(3) and setdomainname(3) on top of sysctl.  FreeBSD
- * has no uname system call; its own libc reads the same sysctls.
+ * has no uname system call.  The kern.utsname sysctl gives all the fields
+ * in one read, each with the value of its own sysctl.
  * gethostname() and getdomainname() stay in gethostname.cpp and call
  * uname().
  *
@@ -47,35 +48,24 @@
 
 /* From FreeBSD's <sys/sysctl.h>. */
 #define	CTL_KERN		1
-#define	CTL_HW			6
-#define	KERN_OSTYPE		1
-#define	KERN_OSRELEASE		2
-#define	KERN_VERSION		4
 #define	KERN_HOSTNAME		10
 #define	KERN_NISDOMAINNAME	22
-#define	HW_MACHINE		1
+#define	KERN_UTSNAME		40
+
+/* FreeBSD <sys/utsname.h>. */
+#define	XUTSNAMELEN		256
+
+struct xutsname {
+	char	xu_sysname[XUTSNAMELEN];
+	char	xu_nodename[XUTSNAMELEN];
+	char	xu_release[XUTSNAMELEN];
+	char	xu_version[XUTSNAMELEN];
+	char	xu_machine[XUTSNAMELEN];
+	char	xu_domainname[XUTSNAMELEN];
+};
 
 int	__sysctl(const int *, unsigned int, void *, size_t *, const void *,
 	    size_t);
-
-/*
- * Read one string into a SYS_NMLN field.  The kernel copies what fits of
- * a longer value and fails with ENOMEM, which is fine here.
- */
-static int
-get_field(int mib0, int mib1, char *field)
-{
-	int mib[2];
-	size_t len;
-
-	mib[0] = mib0;
-	mib[1] = mib1;
-	len = SYS_NMLN;
-	if (__sysctl(mib, 2, field, &len, NULL, 0) != 0 && errno != ENOMEM)
-		return (-1);
-	field[SYS_NMLN - 1] = '\0';
-	return (0);
-}
 
 /*
  * Linux rejects names longer than 64 bytes with EINVAL; do the same.
@@ -97,14 +87,23 @@ set_name(int mib1, const char *name, size_t len)
 int
 uname(struct utsname *buf)
 {
-	memset(buf, 0, sizeof(*buf));
-	if (get_field(CTL_KERN, KERN_OSTYPE, buf->sysname) != 0 ||
-	    get_field(CTL_KERN, KERN_HOSTNAME, buf->nodename) != 0 ||
-	    get_field(CTL_KERN, KERN_OSRELEASE, buf->release) != 0 ||
-	    get_field(CTL_KERN, KERN_VERSION, buf->version) != 0 ||
-	    get_field(CTL_HW, HW_MACHINE, buf->machine) != 0 ||
-	    get_field(CTL_KERN, KERN_NISDOMAINNAME, buf->domainname) != 0)
+	struct xutsname xu;
+	size_t len;
+	int mib[2];
+
+	mib[0] = CTL_KERN;
+	mib[1] = KERN_UTSNAME;
+	len = sizeof(xu);
+	if (__sysctl(mib, 2, &xu, &len, NULL, 0) != 0)
 		return (-1);
+	/* The fields stay zero-filled; a longer value is cut. */
+	memset(buf, 0, sizeof(*buf));
+	strlcpy(buf->sysname, xu.xu_sysname, sizeof(buf->sysname));
+	strlcpy(buf->nodename, xu.xu_nodename, sizeof(buf->nodename));
+	strlcpy(buf->release, xu.xu_release, sizeof(buf->release));
+	strlcpy(buf->version, xu.xu_version, sizeof(buf->version));
+	strlcpy(buf->machine, xu.xu_machine, sizeof(buf->machine));
+	strlcpy(buf->domainname, xu.xu_domainname, sizeof(buf->domainname));
 	return (0);
 }
 
