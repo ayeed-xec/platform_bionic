@@ -100,6 +100,7 @@ chdir(const char*)                                  arm64  E  chdir
 fchdir(int)                                         arm64  E  fchdir
 fsync(int)                                          arm64  E  fsync
 fdatasync(int)                                      arm64  E  fdatasync
+syncfs(int)                                         arm64  E  syncfs
 close_range(unsigned int, unsigned int, int)        arm64  E  close_range
 copy_file_range(int, off_t*, int, off_t*, size_t, unsigned int)  arm64  E  copy_file_range
 renameat2(int, const char*, int, const char*, unsigned int)  arm64  E  renameat2
