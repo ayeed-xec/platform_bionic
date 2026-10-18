@@ -71,6 +71,7 @@ ftruncate|ftruncate64(int, off_t)                   arm64  E  ftruncate
 truncate|truncate64(const char*, off_t)             arm64  E  truncate
 mkdirat(int, const char*, mode_t)                   arm64  E  mkdirat
 readlinkat(int, const char*, char*, size_t)         arm64  E  readlinkat
+symlinkat(const char*, int, const char*)            arm64  E  symlinkat
 __getdirentries:getdirentries(int, char*, size_t, off_t*)  arm64  N  getdents64
 __sys___realpathat:__realpathat(int, const char*, char*, size_t, int)  arm64  F  -
 faccessat(int, const char*, int, int)               arm64  E  faccessat
