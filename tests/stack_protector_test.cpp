@@ -24,6 +24,9 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <unistd.h>
+#if defined(__FreeBSD__)
+#include <sys/sysctl.h>
+#endif
 #include <set>
 
 #include <android-base/silent_death_test.h>
@@ -70,7 +73,17 @@ TEST(stack_protector, same_guard_per_thread) {
   stack_protector_checker checker;
 
   // Check the main thread.
+#if defined(__FreeBSD__)
+  // FreeBSD thread ids are not the pid; kern.proc.pid gives the id of the
+  // first thread of the process, the main thread.
+  int mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid()};
+  kinfo_proc kp;
+  size_t kp_size = sizeof(kp);
+  ASSERT_EQ(0, sysctl(mib, 4, &kp, &kp_size, nullptr, 0));
+  ASSERT_EQ(kp.ki_tid, gettid()); // We are the main thread, right?
+#else
   ASSERT_EQ(getpid(), gettid()); // We are the main thread, right?
+#endif
   checker.Check();
 
   size_t thread_count = 9;
