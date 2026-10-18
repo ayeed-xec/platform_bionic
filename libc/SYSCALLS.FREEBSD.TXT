@@ -114,6 +114,10 @@ geteuid()                                           arm64  E  geteuid
 getgid()                                            arm64  E  getgid
 getegid()                                           arm64  E  getegid
 getgroups(int, gid_t*)                              arm64  E  getgroups
+setuid(uid_t)                                       arm64  E  setuid
+setgid(gid_t)                                       arm64  E  setgid
+setgroups(int, const gid_t*)                        arm64  E  setgroups
+setsid()                                            arm64  E  setsid
 issetugid()                                         arm64  F  -
 __procctl:procctl(int, id_t, int, void*)            arm64  F  -
 getrlimit|getrlimit64(int, struct rlimit*)          arm64  E  getrlimit
@@ -145,6 +149,8 @@ sched_get_priority_min(int)                         arm64  E  sched_get_priority
 # Sockets.
 __socket:socket(int, int, int)                      arm64  E  socket
 __connect:connect(int, const struct sockaddr*, socklen_t)  arm64  E  connect
+bind(int, const struct sockaddr*, socklen_t)        arm64  E  bind
+listen(int, int)                                    arm64  E  listen
 __accept4:accept4(int, struct sockaddr*, socklen_t*, int)  arm64  E  accept4
 __sendto:sendto(int, const void*, size_t, int, const struct sockaddr*, socklen_t)  arm64  E  sendto
 __sendmsg:sendmsg(int, const struct msghdr*, int)  arm64  E  sendmsg
