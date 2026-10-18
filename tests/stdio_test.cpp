@@ -1222,8 +1222,14 @@ TEST(STDIO_TEST, popen_r) {
 
   char buf[16];
   char* s = fgets(buf, sizeof(buf), fp);
+#if defined(__FreeBSD__)
+  // aprocfs(4) gives the FreeBSD values in the Linux layout.
+  buf[15] = '\0';
+  ASSERT_STREQ("FreeBSD version", s);
+#else
   buf[13] = '\0';
   ASSERT_STREQ("Linux version", s);
+#endif
 
   ASSERT_EQ(0, pclose(fp));
 }
