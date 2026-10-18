@@ -118,6 +118,15 @@ setuid(uid_t)                                       arm64  E  setuid
 setgid(gid_t)                                       arm64  E  setgid
 setgroups(int, const gid_t*)                        arm64  E  setgroups
 setsid()                                            arm64  E  setsid
+setresuid(uid_t, uid_t, uid_t)                      arm64  E  setresuid
+setresgid(gid_t, gid_t, gid_t)                      arm64  E  setresgid
+getpgid(pid_t)                                      arm64  E  getpgid
+setpgid(pid_t, pid_t)                               arm64  E  setpgid
+getsid(pid_t)                                       arm64  E  getsid
+getrusage(int, struct rusage*)                      arm64  E  getrusage
+# FreeBSD returns the nice value itself, so bionic's getpriority.cpp, which
+# undoes the bias of the Linux system call, is not built.
+getpriority(int, id_t)                              arm64  E  getpriority
 issetugid()                                         arm64  F  -
 __procctl:procctl(int, id_t, int, void*)            arm64  F  -
 getrlimit|getrlimit64(int, struct rlimit*)          arm64  E  getrlimit
