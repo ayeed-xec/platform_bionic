@@ -106,10 +106,6 @@ static inline pid_t RawGettid() {
 #endif
 }
 
-#if defined(__linux__)
-
-#include <sys/sysmacros.h>
-
 struct map_record {
   uintptr_t addr_start;
   uintptr_t addr_end;
@@ -123,6 +119,10 @@ struct map_record {
 
   std::string pathname;
 };
+
+#if defined(__linux__)
+
+#include <sys/sysmacros.h>
 
 class Maps {
  public:

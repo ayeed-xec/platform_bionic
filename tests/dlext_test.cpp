@@ -37,7 +37,9 @@
 #include <sys/vfs.h>
 #include <sys/wait.h>
 
+#if !defined(__FreeBSD__)
 #include <meminfo/procmeminfo.h>
+#endif
 #include <procinfo/process_map.h>
 #include <ziparchive/zip_archive.h>
 
@@ -596,6 +598,9 @@ TEST_F(DlExtRelroSharingTest, RelroFileEmpty) {
 }
 
 TEST_F(DlExtRelroSharingTest, VerifyMemorySaving) {
+#if defined(__FreeBSD__)
+  GTEST_SKIP() << "bionic-freebsd: no libmeminfo, no /proc/<pid>/smaps";
+#else
   if (geteuid() != 0) GTEST_SKIP() << "This test must be run as root";
 
   TemporaryFile tf; // Use tf to get an unique filename.
@@ -620,8 +625,10 @@ TEST_F(DlExtRelroSharingTest, VerifyMemorySaving) {
 
   // Use destructor of tf to close and unlink the file.
   tf.fd = extinfo_.relro_fd;
+#endif
 }
 
+#if !defined(__FreeBSD__)
 void GetPss(bool shared_relro, const char* lib, const char* relro_file, pid_t pid,
             size_t* total_pss) {
   android::meminfo::ProcMemInfo proc_mem(pid);
@@ -717,6 +724,7 @@ void DlExtRelroSharingTest::SpawnChildrenAndMeasurePss(const char* lib, const ch
     AssertChildExited(child_pids[i], 0);
   }
 }
+#endif
 
 std::string DlExtRelroSharingTest::FindMappingName(void* ptr) {
   uint64_t addr = reinterpret_cast<uint64_t>(untag_address(ptr));
@@ -921,6 +929,9 @@ TEST(dlext, ns_smoke) {
 }
 
 TEST(dlext, dlopen_ext_use_o_tmpfile_fd) {
+#if defined(__FreeBSD__)
+  GTEST_SKIP() << "bionic-freebsd: FreeBSD has no O_TMPFILE";
+#else
   const std::string lib_path = GetTestLibRoot() + "/libtest_simple.so";
 
   int tmpfd = TEMP_FAILURE_RETRY(
@@ -962,6 +973,7 @@ TEST(dlext, dlopen_ext_use_o_tmpfile_fd) {
   ASSERT_DL_NOTNULL(taxicab_number);
   EXPECT_EQ(1729U, *taxicab_number);
   dlclose(handle);
+#endif
 }
 
 TEST(dlext, dlopen_ext_use_memfd) {
