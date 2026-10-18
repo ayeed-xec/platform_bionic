@@ -26,6 +26,7 @@
  * SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <fcntl.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -52,6 +53,13 @@ static inline bool needs_mode(int flags) {
 #endif
 }
 
+// FreeBSD gives EMLINK when O_NOFOLLOW meets a symbolic link; POSIX and
+// Linux give ELOOP, and no other open(2) error is EMLINK.
+static inline int nofollow_errno(int result, int flags) {
+  if (result == -1 && (flags & O_NOFOLLOW) != 0 && errno == EMLINK) errno = ELOOP;
+  return result;
+}
+
 int creat(const char* pathname, mode_t mode) {
   return open(pathname, O_CREAT | O_TRUNC | O_WRONLY, mode);
 }
@@ -67,13 +75,15 @@ int open(const char* pathname, int flags, ...) {
     va_end(args);
   }
 
-  return FDTRACK_CREATE(__openat(AT_FDCWD, pathname, force_O_LARGEFILE(flags), mode));
+  return FDTRACK_CREATE(
+      nofollow_errno(__openat(AT_FDCWD, pathname, force_O_LARGEFILE(flags), mode), flags));
 }
 __strong_alias(open64, open);
 
 int __open_2(const char* pathname, int flags) {
   if (needs_mode(flags)) __fortify_fatal("open: called with O_CREAT/O_TMPFILE but no mode");
-  return FDTRACK_CREATE_NAME("open", __openat(AT_FDCWD, pathname, force_O_LARGEFILE(flags), 0));
+  return FDTRACK_CREATE_NAME(
+      "open", nofollow_errno(__openat(AT_FDCWD, pathname, force_O_LARGEFILE(flags), 0), flags));
 }
 
 int openat(int fd, const char *pathname, int flags, ...) {
@@ -86,11 +96,13 @@ int openat(int fd, const char *pathname, int flags, ...) {
     va_end(args);
   }
 
-  return FDTRACK_CREATE_NAME("openat", __openat(fd, pathname, force_O_LARGEFILE(flags), mode));
+  return FDTRACK_CREATE_NAME(
+      "openat", nofollow_errno(__openat(fd, pathname, force_O_LARGEFILE(flags), mode), flags));
 }
 __strong_alias(openat64, openat);
 
 int __openat_2(int fd, const char* pathname, int flags) {
   if (needs_mode(flags)) __fortify_fatal("open: called with O_CREAT/O_TMPFILE but no mode");
-  return FDTRACK_CREATE_NAME("openat", __openat(fd, pathname, force_O_LARGEFILE(flags), 0));
+  return FDTRACK_CREATE_NAME(
+      "openat", nofollow_errno(__openat(fd, pathname, force_O_LARGEFILE(flags), 0), flags));
 }
