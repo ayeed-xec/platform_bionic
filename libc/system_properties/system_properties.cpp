@@ -44,6 +44,9 @@
 
 #include "private/ErrnoRestorer.h"
 #include "private/bionic_futex.h"
+#if defined(__FreeBSD__)
+#include "private/bionic_time_conversions.h"
+#endif
 
 #include "system_properties/context_node.h"
 #include "system_properties/prop_area.h"
@@ -440,6 +443,42 @@ int SystemProperties::Add(const char* name, unsigned int namelen, const char* va
   return 0;
 }
 
+#if defined(__FreeBSD__)
+// Clients map the property area read-only, and _umtx_op(2) looks up the page of a shared
+// wait for writing, so their wait fails with EFAULT.  Poll the serial instead: sleep 50us
+// first, then twice as long each time, up to 1ms.
+static bool PollSerial(const atomic_uint_least32_t* serial_ptr, uint32_t old_serial,
+                       uint32_t* new_serial_ptr, const timespec* relative_timeout) {
+  constexpr int64_t kMaxSleepNs = 1'000'000;
+  ErrnoRestorer errno_restorer;
+
+  timespec now;
+  clock_gettime(CLOCK_MONOTONIC, &now);
+  int64_t deadline = INT64_MAX;
+  if (relative_timeout != nullptr &&
+      (__builtin_mul_overflow(relative_timeout->tv_sec, NS_PER_S, &deadline) ||
+       __builtin_add_overflow(deadline, relative_timeout->tv_nsec + to_ns(now), &deadline))) {
+    deadline = INT64_MAX;
+  }
+
+  int64_t sleep_ns = 50'000;
+  for (;;) {
+    uint32_t new_serial = load_const_atomic(serial_ptr, memory_order_acquire);
+    if (new_serial != old_serial) {
+      *new_serial_ptr = new_serial;
+      return true;
+    }
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    int64_t left = deadline - to_ns(now);
+    if (left <= 0) return false;
+    timespec ts = {0, static_cast<long>(left < sleep_ns ? left : sleep_ns)};
+    nanosleep(&ts, nullptr);
+    sleep_ns *= 2;
+    if (sleep_ns > kMaxSleepNs) sleep_ns = kMaxSleepNs;
+  }
+}
+#endif
+
 uint32_t SystemProperties::WaitAny(uint32_t old_serial) {
   uint32_t new_serial;
   Wait(nullptr, old_serial, &new_serial, nullptr);
@@ -471,6 +510,9 @@ bool SystemProperties::Wait(const prop_info* pi, uint32_t old_serial, uint32_t* 
     if ((rc = __futex_wait(serial_ptr, old_serial, relative_timeout)) != 0 && rc == -ETIMEDOUT) {
       return false;
     }
+#if defined(__FreeBSD__)
+    if (rc == -EFAULT) return PollSerial(serial_ptr, old_serial, new_serial_ptr, relative_timeout);
+#endif
     new_serial = load_const_atomic(serial_ptr, memory_order_acquire);
   } while (new_serial == old_serial);
 
