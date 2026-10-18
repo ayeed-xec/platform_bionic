@@ -101,6 +101,7 @@ munmap(void*, size_t)                               arm64  E  munmap
 __mprotect:mprotect(void*, size_t, int)             arm64  E  mprotect
 __madvise:madvise(void*, size_t, int)               arm64  E  madvise
 mlock(const void*, size_t)                          arm64  E  mlock
+mincore(void*, size_t, unsigned char*)              arm64  E  mincore
 munlock(const void*, size_t)                        arm64  E  munlock
 minherit(void*, size_t, int)                        arm64  F  -
 __shm_open2:shm_open2(const char*, int, mode_t, int, const char*)  arm64  N  memfd_create
