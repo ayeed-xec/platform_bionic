@@ -40,7 +40,8 @@
 
 /*
  * No section group: lld garbage-collects a note that is in a group, and
- * then the kernel gets no osrel.  Only crtbegin carries this note.
+ * then the kernel gets no osrel.  crtbegin carries this note; linker64,
+ * libc.so and libdl, which have no crtbegin, link this file directly.
  */
 	.section .note.tag,"a",%note
 	.p2align 2
