@@ -40,19 +40,20 @@
 #include "private/ErrnoRestorer.h"
 #include "pthread_internal.h"
 
-#if defined(__FreeBSD__)
-extern "C" int __thr_set_name(long, const char*);
-#endif
-
 // This value is not exported by kernel headers.
 #define MAX_TASK_COMM_LEN 16
 
+#if defined(__FreeBSD__)
+extern "C" int __freebsd_get_thread_name(pid_t, char*);
+extern "C" int __thr_set_name(long, const char*);
+#else
 static int __open_task_comm_fd(pthread_t t, int flags, const char* caller) {
   char comm_name[64];
   snprintf(comm_name, sizeof(comm_name), "/proc/self/task/%d/comm",
            __pthread_internal_gettid(t, caller));
   return open(comm_name, O_CLOEXEC | flags);
 }
+#endif
 
 __BIONIC_WEAK_FOR_NATIVE_BRIDGE
 int pthread_getname_np(pthread_t t, char* buf, size_t buf_size) {
@@ -66,6 +67,13 @@ int pthread_getname_np(pthread_t t, char* buf, size_t buf_size) {
   }
 
   // We have to get another thread's name.
+#if defined(__FreeBSD__)
+  // No /proc: the kernel's thread list has the name. A thread that is not
+  // there gives ENOENT, as the missing /proc file does on Linux.
+  pid_t tid = __pthread_internal_gettid(t, "pthread_getname_np");
+  if (tid == -1) return ENOENT;
+  return __freebsd_get_thread_name(tid, buf) == -1 ? errno : 0;
+#else
   int fd = __open_task_comm_fd(t, O_RDONLY, "pthread_getname_np");
   if (fd == -1) return errno;
 
@@ -84,6 +92,7 @@ int pthread_getname_np(pthread_t t, char* buf, size_t buf_size) {
   if (n == static_cast<ssize_t>(buf_size)) return ERANGE;
   buf[n] = '\0';
   return 0;
+#endif
 }
 
 __BIONIC_WEAK_FOR_NATIVE_BRIDGE
@@ -102,7 +111,7 @@ int pthread_setname_np(pthread_t t, const char* thread_name) {
 #if defined(__FreeBSD__)
   // thr_set_name(2) can name any thread in the process.
   pid_t tid = __pthread_internal_gettid(t, "pthread_setname_np");
-  if (tid == -1) return ESRCH;
+  if (tid == -1) return ENOENT;
   return __thr_set_name(tid, thread_name) == -1 ? errno : 0;
 #else
   int fd = __open_task_comm_fd(t, O_WRONLY, "pthread_setname_np");
