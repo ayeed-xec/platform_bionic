@@ -841,7 +841,14 @@ TEST(dlfcn, dlclose_unload) {
   // process. Note that mprotect somewhat counter-intuitively returns ENOMEM in
   // this case.
   uintptr_t page_start = reinterpret_cast<uintptr_t>(taxicab_number) & ~(kPageSize - 1);
+#if defined(__FreeBSD__)
+  // FreeBSD's mprotect(2) skips the holes in a range; mincore(2) fails with
+  // ENOMEM for a range that is not fully mapped.
+  unsigned char vec;
+  ASSERT_EQ(-1, mincore(reinterpret_cast<void*>(page_start), kPageSize, &vec));
+#else
   ASSERT_TRUE(mprotect(reinterpret_cast<void*>(page_start), kPageSize, PROT_NONE) != 0);
+#endif
   ASSERT_ERRNO(ENOMEM);
 }
 
