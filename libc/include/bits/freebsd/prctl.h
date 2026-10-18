@@ -28,7 +28,8 @@
 /*
  * prctl(2) options.  FreeBSD has no prctl(2): libc emulates it, so the
  * options have the Android values (ADR 0002, decision 1.3).  This file
- * has only the options that bionic uses.
+ * has only the options that bionic and the libraries of the Android root
+ * use.
  */
 
 #pragma once
@@ -37,6 +38,15 @@
 #define	PR_SET_DUMPABLE			4
 #define	PR_SET_NAME			15
 #define	PR_GET_NAME			16
+
+#define	PR_SET_NO_NEW_PRIVS		38
+#define	PR_GET_NO_NEW_PRIVS		39
+
+#define	PR_CAP_AMBIENT			47
+#define	PR_CAP_AMBIENT_IS_SET		1
+#define	PR_CAP_AMBIENT_RAISE		2
+#define	PR_CAP_AMBIENT_LOWER		3
+#define	PR_CAP_AMBIENT_CLEAR_ALL	4
 
 #define	PR_PAC_RESET_KEYS		54
 #define	PR_PAC_APIAKEY			(1UL << 0)

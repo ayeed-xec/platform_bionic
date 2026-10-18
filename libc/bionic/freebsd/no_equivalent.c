@@ -34,6 +34,9 @@
  *			Both fail with ENOMEM.
  * clone		Needs an emulation on rfork(2) and thr_new(2).  fork()
  *			does not come through here.
+ * klogctl		The kern.msgbuf sysctl reads the whole kernel message
+ *			buffer, but FreeBSD has no read that consumes it and no
+ *			count of unread bytes.  ENOSYS.
  * mremap		FreeBSD cannot move a mapping or grow it in place, and
  *			a copy would break shared mappings.  ENOSYS.
  * mseal		Nothing stops later mprotect(2) or munmap(2) calls on a
@@ -53,6 +56,7 @@ void	*mremap(void *, size_t, size_t, int, ...);
 int	mseal(void *, size_t, unsigned long);
 int	__rt_tgsigqueueinfo(pid_t, pid_t, int, void *);
 int	syncfs(int);
+int	klogctl(int, char *, int);
 
 int
 brk(void *addr)
@@ -117,6 +121,16 @@ int
 syncfs(int fd)
 {
 	(void)fd;
+	errno = ENOSYS;
+	return (-1);
+}
+
+int
+klogctl(int type, char *buf, int len)
+{
+	(void)type;
+	(void)buf;
+	(void)len;
 	errno = ENOSYS;
 	return (-1);
 }

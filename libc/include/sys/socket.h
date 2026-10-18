@@ -39,6 +39,11 @@
  * reads them. The header also gives struct iovec.
  */
 #include <bits/freebsd/socket.h>
+/*
+ * The O_* and F_* values, as bionic's own <sys/socket.h> gives them through
+ * <asm/fcntl.h>: Android code depends on that.
+ */
+#include <bits/freebsd/fcntl.h>
 
 #include <bits/sockaddr_storage.h>
 #include <bits/sa_family_t.h>

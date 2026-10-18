@@ -29,8 +29,10 @@
  * Scheduling policies and clone(2) flags.
  *
  * The kernel reads the policies, so they have the FreeBSD values of
- * sys/sys/sched.h.  FreeBSD has no SCHED_BATCH, SCHED_IDLE or
- * SCHED_DEADLINE.  SCHED_RESET_ON_FORK has the Android value; the FreeBSD
+ * sys/sys/sched.h.  FreeBSD has no SCHED_DEADLINE and no SCHED_BATCH:
+ * sched_setscheduler(2) fails with EINVAL for SCHED_BATCH.  SCHED_IDLE is
+ * the idle class of rtprio(2) in libc; the kernel does not know its value.
+ * SCHED_RESET_ON_FORK has the Android value; the FreeBSD
  * kernel does not know it, and sched_setscheduler(2) fails with EINVAL if
  * a policy has it.
  *
@@ -44,6 +46,8 @@
 #define	SCHED_FIFO		1
 #define	SCHED_NORMAL		2
 #define	SCHED_RR		3
+#define	SCHED_BATCH		4
+#define	SCHED_IDLE		5
 #define	SCHED_RESET_ON_FORK	0x40000000
 
 #define	CLONE_VM		0x00000100

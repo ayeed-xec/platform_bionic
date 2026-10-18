@@ -27,9 +27,15 @@
 
 /*
  * The names of <linux/fs.h> that Android code uses on bionic-freebsd.
- * SEEK_DATA and SEEK_HOLE have the same values on FreeBSD.
+ * SEEK_DATA and SEEK_HOLE have the same values on FreeBSD.  The inode flag
+ * command has the Linux value: FreeBSD gives ENOTTY for it, as a Linux file
+ * system without inode flags does.
  */
 
 #pragma once
 
 #include <bits/seek_constants.h>
+
+/* The inode flags of FS_IOC_SETFLAGS (FreeBSD ext2fs EXT2_COMPR). */
+#define	FS_IOC_SETFLAGS		0x40086602U
+#define	FS_COMPR_FL		0x00000004

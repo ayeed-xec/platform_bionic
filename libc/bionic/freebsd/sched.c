@@ -41,6 +41,10 @@
  * FreeBSD thread ids start above PID_MAX.  An id that names no thread can
  * still be a process id, and the FreeBSD system call then handles it.
  *
+ * SCHED_IDLE is the idle class of rtprio(2) at its lowest priority.
+ * FreeBSD lets only root set it, unless security.bsd.unprivileged_idprio
+ * is 1.  FreeBSD has no SCHED_BATCH, so it fails with EINVAL.
+ *
  * FreeBSD has no SCHED_RESET_ON_FORK, so a policy with that flag fails
  * with EINVAL.
  */
@@ -55,6 +59,7 @@
 #define	RTP_SET			1
 #define	RTP_PRIO_REALTIME	2
 #define	RTP_PRIO_NORMAL		3
+#define	RTP_PRIO_IDLE		4
 #define	RTP_PRIO_FIFO		10
 #define	RTP_PRIO_MAX		31
 #define	PRI_MIN_TIMESHARE	56
@@ -81,6 +86,9 @@ rtprio_policy(const struct rtprio *rtp, int *priority)
 	case RTP_PRIO_REALTIME:
 		*priority = RTP_PRIO_MAX - rtp->prio;
 		return (SCHED_RR);
+	case RTP_PRIO_IDLE:
+		*priority = 0;
+		return (SCHED_IDLE);
 	default:
 		*priority = 0;
 		return (SCHED_OTHER);
@@ -105,6 +113,12 @@ policy_rtprio(int policy, int priority, struct rtprio *rtp)
 			break;
 		rtp->type = RTP_PRIO_NORMAL;
 		rtp->prio = 0;
+		return (0);
+	case SCHED_IDLE:
+		if (priority != 0)
+			break;
+		rtp->type = RTP_PRIO_IDLE;
+		rtp->prio = RTP_PRIO_MAX;
 		return (0);
 	}
 	errno = EINVAL;

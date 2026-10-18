@@ -38,6 +38,7 @@
 
 #include "bionic/pthread_internal.h"
 #include "private/FdPath.h"
+#include "private/bionic_fdtrack.h"
 
 int getpt() {
   return posix_openpt(O_RDWR|O_NOCTTY);
@@ -47,8 +48,17 @@ int grantpt(int) {
   return 0;
 }
 
+#if defined(__FreeBSD__)
+extern "C" int __posix_openpt(int);
+#endif
+
 int posix_openpt(int flags) {
+#if defined(__FreeBSD__)
+  // FreeBSD makes a pseudo-terminal with a system call: it has no /dev/ptmx.
+  return FDTRACK_CREATE(__posix_openpt(flags));
+#else
   return open("/dev/ptmx", flags);
+#endif
 }
 
 char* ptsname(int fd) {
@@ -108,8 +118,13 @@ int ttyname_r(int fd, char* buf, size_t len) {
 }
 
 int unlockpt(int fd) {
+#if defined(__FreeBSD__)
+  // A FreeBSD pseudo-terminal is never locked: only check that fd is a master.
+  return ioctl(fd, TIOCPTMASTER);
+#else
   int unlock = 0;
   return ioctl(fd, TIOCSPTLCK, &unlock);
+#endif
 }
 
 int openpty(int* pty, int* tty, char* name, const termios* t, const winsize* ws) {
