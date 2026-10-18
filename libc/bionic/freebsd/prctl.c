@@ -62,7 +62,6 @@
 
 int	__freebsd_get_thread_name(pid_t, char *);
 int	__procctl(int, id_t, int, void *);
-int	__thr_self(long *);
 int	__thr_set_name(long, const char *);
 
 /*
@@ -116,31 +115,24 @@ __freebsd_get_thread_name(pid_t tid, char *buf)
 static int
 get_name(char *name)
 {
-	long tid;
-
 	if (name == NULL) {
 		errno = EFAULT;
 		return (-1);
 	}
-	if (__thr_self(&tid) != 0)
-		return (-1);
-	return (__freebsd_get_thread_name(tid, name));
+	return (__freebsd_get_thread_name(gettid(), name));
 }
 
 static int
 set_name(const char *name)
 {
 	char buf[TASK_COMM_LEN];
-	long tid;
 
 	if (name == NULL) {
 		errno = EFAULT;
 		return (-1);
 	}
 	strlcpy(buf, name, sizeof(buf));
-	if (__thr_self(&tid) != 0)
-		return (-1);
-	return (__thr_set_name(tid, buf));
+	return (__thr_set_name(gettid(), buf));
 }
 
 static int
