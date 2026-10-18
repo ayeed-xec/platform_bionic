@@ -59,4 +59,13 @@ __BEGIN_DECLS
  */
 int sysctl(const int* _Nonnull __name, u_int __name_length, void* _Nullable __old, size_t* _Nullable __old_length, const void* _Nullable __new, size_t __new_length);
 
+/**
+ * [sysctlbyname(3)](https://man.freebsd.org/cgi/man.cgi?query=sysctlbyname&sektion=3)
+ * is sysctl() with the name of the MIB as a string, such as
+ * "kern.timecounter.hardware".
+ *
+ * Returns 0 on success, and returns -1 and sets `errno` on failure.
+ */
+int sysctlbyname(const char* _Nonnull __name, void* _Nullable __old, size_t* _Nullable __old_length, const void* _Nullable __new, size_t __new_length);
+
 __END_DECLS
