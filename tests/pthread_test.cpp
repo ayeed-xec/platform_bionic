@@ -3033,6 +3033,25 @@ TEST(pthread, pthread_create__mmap_failures) {
   // Use up all the VMAs. By default this is 64Ki (though some will already be in use).
   std::vector<void*> pages;
   pages.reserve(64 * 1024);
+#if defined(__FreeBSD__)
+  // FreeBSD has no limit on the number of map entries, so limit the size of
+  // the map with RLIMIT_AS instead.  Leave room for half a thread stack: no
+  // thread fits, so no new thread needs memory while the limit is low.
+  size_t stack_size;
+  ASSERT_EQ(0, pthread_attr_getstacksize(&attr, &stack_size));
+  int mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid()};
+  kinfo_proc kp;
+  size_t kp_size = sizeof(kp);
+  ASSERT_EQ(0, sysctl(mib, 4, &kp, &kp_size, nullptr, 0));
+  rlimit rl;
+  ASSERT_EQ(0, getrlimit(RLIMIT_AS, &rl));
+  const rlimit original_rl = rl;
+  auto guard = android::base::make_scope_guard([&original_rl]() {
+    ASSERT_EQ(0, setrlimit(RLIMIT_AS, &original_rl));
+  });
+  rl.rlim_cur = kp.ki_size + stack_size / 2;
+  ASSERT_EQ(0, setrlimit(RLIMIT_AS, &rl));
+#endif
   int prot = PROT_NONE;
   while (true) {
     void* page = mmap(nullptr, kPageSize, prot, MAP_ANON|MAP_PRIVATE, -1, 0);
@@ -3040,6 +3059,9 @@ TEST(pthread, pthread_create__mmap_failures) {
     pages.push_back(page);
     prot = (prot == PROT_NONE) ? PROT_READ : PROT_NONE;
   }
+#if defined(__FreeBSD__)
+  ASSERT_ERRNO(ENOMEM);
+#endif
 
   // Try creating threads, freeing up a page each time we fail.
   size_t EAGAIN_count = 0;
@@ -3059,6 +3081,14 @@ TEST(pthread, pthread_create__mmap_failures) {
   for (; i < pages.size(); ++i) {
     ASSERT_EQ(0, munmap(pages[i], kPageSize));
   }
+
+#if defined(__FreeBSD__)
+  // Each attempt failed, and with the old limit back a thread fits again.
+  ASSERT_EQ(pages.size(), EAGAIN_count);
+  ASSERT_EQ(0, setrlimit(RLIMIT_AS, &original_rl));
+  pthread_t t;
+  ASSERT_EQ(0, pthread_create(&t, &attr, IdFn, nullptr));
+#endif
 }
 
 TEST(pthread, pthread_setschedparam) {
