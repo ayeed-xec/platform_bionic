@@ -1768,8 +1768,13 @@ TEST(UNISTD_TEST, exec_argv0_null) {
   // from trying to hide like this.
   char* args[] = {nullptr};
   char* envs[] = {nullptr};
+#if defined(__FreeBSD__)
+  // FreeBSD's execve(2) fails an empty argv with EINVAL before the path lookup.
+  ASSERT_ERRNO_FAILURE(EINVAL, -1, execve("/system/bin/run-as", args, envs));
+#else
   ASSERT_EXIT(execve("/system/bin/run-as", args, envs), testing::ExitedWithCode(1),
               ": usage: run-as");
+#endif
 }
 
 TEST(UNISTD_TEST, fexecve_failure) {
