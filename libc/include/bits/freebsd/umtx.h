@@ -26,8 +26,10 @@
  */
 
 /*
- * The _umtx_op(2) operations that bionic's futex code uses, and the
- * timeout structure, from FreeBSD sys/sys/umtx.h and sys/sys/_umtx.h.
+ * The _umtx_op(2) operations that bionic's futex code uses, the timeout
+ * structure and struct umutex, from FreeBSD sys/sys/umtx.h and
+ * sys/sys/_umtx.h.  A priority-inheritance mutex of bionic keeps an
+ * m_owner and an m_flags word in the layout of struct umutex.
  * abi_check.c checks them.
  */
 
@@ -39,14 +41,30 @@
 
 #define	UMTX_OP_WAIT			2
 #define	UMTX_OP_WAKE			3
+#define	UMTX_OP_MUTEX_LOCK		5
+#define	UMTX_OP_MUTEX_UNLOCK		6
 #define	UMTX_OP_WAIT_UINT		11
 #define	UMTX_OP_WAIT_UINT_PRIVATE	15
 #define	UMTX_OP_WAKE_PRIVATE		16
 
 #define	UMTX_ABSTIME			0x01
 
+#define	USYNC_PROCESS_SHARED		0x0001
+#define	UMUTEX_PRIO_INHERIT		0x0004
+
 struct _umtx_time {
 	struct timespec	_timeout;
 	uint32_t	_flags;
 	uint32_t	_clockid;
+};
+
+struct umutex {
+	volatile int32_t m_owner;
+	uint32_t	m_flags;
+	uint32_t	m_ceilings[2];
+	uintptr_t	m_rb_lnk;
+#if !defined(__LP64__)
+	uint32_t	m_pad;
+#endif
+	uint32_t	m_spare[2];
 };

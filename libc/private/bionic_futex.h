@@ -90,8 +90,24 @@ static inline __always_inline int __futex_umtx(volatile void* ftx, int op, int v
     case FUTEX_WAKE:
       return __umtx_op(obj, is_private ? UMTX_OP_WAKE_PRIVATE : UMTX_OP_WAKE, val, nullptr,
                        nullptr);
+    // A priority-inheritance futex is the m_owner word of a struct umutex.
+    // The kernel reads the m_flags word after it, and takes the
+    // process-shared flag from there, not from op.
+    case FUTEX_LOCK_PI2: {
+      if (timeout == nullptr) return __umtx_op(obj, UMTX_OP_MUTEX_LOCK, 0, nullptr, nullptr);
+      uint32_t clock = (op & FUTEX_CLOCK_REALTIME) ? CLOCK_REALTIME : CLOCK_MONOTONIC;
+      _umtx_time ut = {*timeout, UMTX_ABSTIME, clock};
+      // A timed lock is not restarted after a signal. The timeout is
+      // absolute, so just try again.
+      int rc;
+      do {
+        rc = __umtx_op(obj, UMTX_OP_MUTEX_LOCK, 0, reinterpret_cast<void*>(sizeof(ut)), &ut);
+      } while (rc == -1 && errno == EINTR);
+      return rc;
+    }
+    case FUTEX_UNLOCK_PI:
+      return __umtx_op(obj, UMTX_OP_MUTEX_UNLOCK, 0, nullptr, nullptr);
   }
-  // No priority-inheritance futexes yet.
   errno = ENOSYS;
   return -1;
 }

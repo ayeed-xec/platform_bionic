@@ -143,7 +143,17 @@ struct PIMutex {
   // owner_tid is read/written by both userspace code and kernel code. It includes three fields:
   // FUTEX_WAITERS, FUTEX_OWNER_DIED and FUTEX_TID_MASK.
   atomic_int owner_tid;
+#if defined(__FreeBSD__)
+  // owner_tid and umtx_flags are the m_owner and m_flags words of a FreeBSD
+  // struct umutex. The kernel's contested bit is FUTEX_WAITERS.
+  uint32_t umtx_flags;
+#endif
 };
+
+#if defined(__FreeBSD__)
+static_assert(offsetof(PIMutex, umtx_flags) - offsetof(PIMutex, owner_tid) ==
+              offsetof(umutex, m_flags), "umtx_flags must be m_flags of a struct umutex");
+#endif
 
 static inline __always_inline int PIMutexTryLock(PIMutex& mutex) {
     pid_t tid = __get_thread()->tid;
@@ -463,7 +473,11 @@ struct pthread_mutex_internal_t {
         atomic_int owner_tid;
         PIMutex pi_mutex;
     };
+#if defined(__FreeBSD__)
+    char __reserved[24];
+#else
     char __reserved[28];
+#endif
 
     PIMutex& ToPIMutex() {
         return pi_mutex;
@@ -472,6 +486,12 @@ struct pthread_mutex_internal_t {
     void FreePIMutex() {
     }
 } __attribute__((aligned(4)));
+
+#if defined(__FreeBSD__)
+// The whole struct umutex that starts at owner_tid stays in the mutex.
+static_assert(offsetof(pthread_mutex_internal_t, pi_mutex) + offsetof(PIMutex, owner_tid) +
+              sizeof(umutex) <= sizeof(pthread_mutex_internal_t), "struct umutex must fit");
+#endif
 
 #else
 struct pthread_mutex_internal_t {
@@ -547,6 +567,9 @@ int pthread_mutex_init(pthread_mutex_t* mutex_interface, const pthread_mutexattr
         PIMutex& pi_mutex = mutex->ToPIMutex();
         pi_mutex.type = *attr & MUTEXATTR_TYPE_MASK;
         pi_mutex.shared = (*attr & MUTEXATTR_SHARED_MASK) != 0;
+#if defined(__FreeBSD__)
+        pi_mutex.umtx_flags = UMUTEX_PRIO_INHERIT | (pi_mutex.shared ? USYNC_PROCESS_SHARED : 0);
+#endif
     } else {
       atomic_store_explicit(&mutex->state, state, memory_order_relaxed);
       atomic_store_explicit(&mutex->owner_tid, 0, memory_order_relaxed);

@@ -76,6 +76,12 @@ int __futex_wait_ex(volatile void* ftx, bool shared, int value, bool use_realtim
 
 int __futex_pi_lock_ex(volatile void* ftx, bool shared, bool use_realtime_clock,
                        const timespec* abs_timeout) {
+#if defined(__FreeBSD__)
+  // _umtx_op(2) always takes a CLOCK_MONOTONIC timeout. Do not probe: the
+  // probe locks a bare 32-bit word, and UMTX_OP_MUTEX_LOCK also reads the
+  // word after it.
+  int op = FUTEX_LOCK_PI2;
+#else
   // We really want FUTEX_LOCK_PI2 which is default CLOCK_MONOTONIC, but that isn't supported
   // on linux before 5.14.  FUTEX_LOCK_PI uses CLOCK_REALTIME.  Here we verify support.
 
@@ -91,6 +97,7 @@ int __futex_pi_lock_ex(volatile void* ftx, bool shared, bool use_realtime_clock,
     }
     atomic_store_explicit(&lock_op, op, memory_order_relaxed);
   }
+#endif
 
   if (!shared) op |= FUTEX_PRIVATE_FLAG;
   return FutexWithTimeout(ftx, op, 0 /* value */, use_realtime_clock, abs_timeout, 0 /* bitset */);
