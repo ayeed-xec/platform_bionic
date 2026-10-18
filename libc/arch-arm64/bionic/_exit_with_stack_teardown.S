@@ -28,6 +28,24 @@
 
 #include <private/bionic_asm.h>
 
+#if defined(__FreeBSD__)
+// void __thr_exit(long* state)
+//
+// thr_exit(2) returns in the last thread of the process, and that thread
+// must then end the process.  Do it with _exit(0), as the exit of the
+// last thread does on Linux.  Do not touch the stack after thr_exit: a
+// joiner woken through state may have unmapped it already.
+ENTRY_PRIVATE(__thr_exit)
+  mov w8, SYS_thr_exit
+  svc #0
+
+  mov x0, #0
+  mov w8, SYS__exit
+  svc #0
+  // The _exit syscall does not return.
+END(__thr_exit)
+#endif
+
 // void _exit_with_stack_teardown(void* stackBase, size_t stackSize)
 ENTRY_PRIVATE(_exit_with_stack_teardown)
 #if defined(__FreeBSD__)
@@ -37,9 +55,7 @@ ENTRY_PRIVATE(_exit_with_stack_teardown)
 
   // thr_exit(NULL): a detached thread has no joiner to wake.
   mov x0, #0
-  mov w8, SYS_thr_exit
-  svc #0
-  // The thr_exit syscall does not return.
+  b __thr_exit
 #else
   mov w8, __NR_munmap
   svc #0

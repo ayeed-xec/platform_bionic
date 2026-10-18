@@ -421,6 +421,30 @@ TEST_F(pthread_DeathTest, pthread_bug_37410) {
   ASSERT_EXIT(TestBug37410::main(), ::testing::ExitedWithCode(0), "");
 }
 
+static void* JoinMainThreadFn(void* arg) {
+  pthread_join(reinterpret_cast<pthread_t>(arg), nullptr);
+  return nullptr;
+}
+
+static void ExitMainThreadBeforeDetachedThread() {
+  pthread_attr_t attr;
+  ASSERT_EQ(0, pthread_attr_init(&attr));
+  ASSERT_EQ(0, pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED));
+  pthread_t t;
+  ASSERT_EQ(0, pthread_create(&t, &attr, JoinMainThreadFn, reinterpret_cast<void*>(pthread_self())));
+  pthread_exit(nullptr);
+}
+
+// The last thread to call pthread_exit ends the process with status 0, also
+// when it is a detached thread that unmaps its own stack on the way out.
+TEST_F(pthread_DeathTest, pthread_exit_last_thread_detached) {
+  ASSERT_EXIT(ExitMainThreadBeforeDetachedThread(), ::testing::ExitedWithCode(0), "");
+}
+
+TEST_F(pthread_DeathTest, pthread_exit_only_thread) {
+  ASSERT_EXIT(pthread_exit(nullptr), ::testing::ExitedWithCode(0), "");
+}
+
 static void* SignalHandlerFn(void* arg) {
   sigset64_t wait_set;
   sigfillset64(&wait_set);
