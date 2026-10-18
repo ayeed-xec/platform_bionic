@@ -51,6 +51,7 @@ int __clone_for_fork() {
     __thr_self(&tid);
     self->tid = static_cast<pid_t>(tid);
     self->set_cached_pid(__getpid());
+    __main_thread = self;
   }
   return result;
 #else

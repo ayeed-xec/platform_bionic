@@ -165,11 +165,18 @@ __libc_init_mte_late() {
 #endif
 }
 
+#if defined(__FreeBSD__)
+pthread_internal_t* __main_thread;
+#endif
+
 __BIONIC_WEAK_FOR_NATIVE_BRIDGE
 void __libc_add_main_thread() {
   // Get the main thread from TLS and add it to the thread list.
   pthread_internal_t* main_thread = __get_thread();
   __pthread_internal_add(main_thread);
+#if defined(__FreeBSD__)
+  __main_thread = main_thread;
+#endif
 }
 
 void __libc_init_common() {

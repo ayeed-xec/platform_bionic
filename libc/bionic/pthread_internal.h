@@ -225,6 +225,12 @@ __LIBC_HIDDEN__ pid_t __pthread_internal_gettid(pthread_t pthread_id, const char
 __LIBC_HIDDEN__ void __pthread_internal_remove(pthread_internal_t* thread);
 __LIBC_HIDDEN__ void __pthread_internal_remove_and_free(pthread_internal_t* thread);
 __LIBC_HIDDEN__ void __find_main_stack_limits(uintptr_t* low, uintptr_t* high);
+#if defined(__FreeBSD__)
+// A thread ID is never the process ID, so "getpid() == gettid()" cannot tell
+// the main thread.  This is the main thread, or the thread that called fork()
+// in the child.
+__LIBC_HIDDEN__ extern pthread_internal_t* __main_thread;
+#endif
 #if defined(__aarch64__)
 __LIBC_HIDDEN__ void* __allocate_stack_mte_ringbuffer(size_t n, pthread_internal_t* thread);
 #endif

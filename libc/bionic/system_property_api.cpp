@@ -33,6 +33,7 @@
 #include <system_properties/system_properties.h>
 
 #include "private/bionic_defs.h"
+#include "pthread_internal.h"
 
 static SystemProperties system_properties;
 static_assert(__is_trivially_constructible(SystemProperties),
@@ -132,6 +133,10 @@ int __system_property_foreach(void (*propfn)(const prop_info* pi, void* cookie),
 
 __BIONIC_WEAK_FOR_NATIVE_BRIDGE
 int __system_properties_zygote_reload(void) {
+#if defined(__FreeBSD__)
+  CHECK(__get_thread() == __main_thread);
+#else
   CHECK(getpid() == gettid());
+#endif
   return system_properties.EnableOverrides() ? 0 : -1;
 }
