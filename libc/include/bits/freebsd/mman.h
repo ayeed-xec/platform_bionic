@@ -50,8 +50,8 @@
 #define	PROT_MTE		0x20
 #define	PROT_GROWSDOWN		0x01000000
 /*
- * PROT_BTI keeps the Android value too.  mprotect() applies it with
- * sysarch(2) ARM64_GUARD_PAGE; mmap(2) rejects it with EINVAL.
+ * PROT_BTI keeps the Android value too.  mmap() and mprotect() give it to
+ * the kernel as the FreeBSD PROT_BTI, 0x40 (FreeBSD reserves 0x10).
  */
 #define	PROT_BTI		0x10
 

@@ -26,38 +26,30 @@
  */
 
 /*
- * mprotect(2) with Android's PROT_BTI on arm64.  The FreeBSD kernel does not
- * take PROT_BTI.  It marks pages as BTI guarded pages with sysarch(2)
- * ARM64_GUARD_PAGE instead, as FreeBSD's rtld does for objects with the BTI
- * property.  The mark cannot be removed, but it has an effect only on
- * executable pages.  Callers use PROT_BTI only when AT_HWCAP2 has HWCAP2_BTI.
+ * mprotect(2) with Android's PROT_BTI on arm64.  The FreeBSD kernel takes
+ * PROT_BTI under another value (prot.h) and marks the pages as BTI guarded
+ * pages.  The mark stays until the pages are unmapped, but it has an effect
+ * only on executable pages.  Callers use PROT_BTI only when AT_HWCAP2 has
+ * HWCAP2_BTI.
  */
 
+#include <errno.h>
 #include <stddef.h>
-#include <stdint.h>
 #include <sys/mman.h>
 
-/* FreeBSD <machine/sysarch.h>. */
-#define	ARM64_GUARD_PAGE	0x100
-
-struct arm64_guard_page_args {
-	uintptr_t	addr;
-	size_t		len;
-};
+#include "prot.h"
 
 int	__mprotect(void *, size_t, int);
-int	__sysarch(int, void *);
 
 int
 mprotect(void *addr, size_t len, int prot)
 {
-	struct arm64_guard_page_args guard;
+	int fprot;
 
-	if ((prot & PROT_BTI) == 0)
-		return (__mprotect(addr, len, prot));
-	if (__mprotect(addr, len, prot & ~PROT_BTI) != 0)
+	fprot = __freebsd_prot(prot);
+	if (fprot == -1) {
+		errno = EINVAL;
 		return (-1);
-	guard.addr = (uintptr_t)addr;
-	guard.len = len;
-	return (__sysarch(ARM64_GUARD_PAGE, &guard));
+	}
+	return (__mprotect(addr, len, fprot));
 }

@@ -29,7 +29,8 @@
 /*
  * mmap(2) with the Linux check of the file offset.  FreeBSD maps the page
  * that holds an unaligned offset and returns a pointer into that page.
- * Linux fails with EINVAL.
+ * Linux fails with EINVAL.  Android's PROT_BTI has another value on FreeBSD
+ * (prot.h).
  */
 
 #include <sys/cdefs.h>
@@ -38,16 +39,21 @@
 #include <errno.h>
 #include <unistd.h>
 
+#include "prot.h"
+
 void	*__mmap(void *, size_t, int, int, int, off_t);
 
 void *
 mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset)
 {
-	if ((offset & (getpagesize() - 1)) != 0) {
+	int fprot;
+
+	fprot = __freebsd_prot(prot);
+	if (fprot == -1 || (offset & (getpagesize() - 1)) != 0) {
 		errno = EINVAL;
 		return (MAP_FAILED);
 	}
-	return (__mmap(addr, len, prot, flags, fd, offset));
+	return (__mmap(addr, len, fprot, flags, fd, offset));
 }
 
 __strong_alias(mmap64, mmap);
