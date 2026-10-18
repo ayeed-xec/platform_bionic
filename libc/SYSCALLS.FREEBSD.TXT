@@ -95,7 +95,7 @@ copy_file_range(int, off_t*, int, off_t*, size_t, unsigned int)  arm64  E  copy_
 renameat2(int, const char*, int, const char*, unsigned int)  arm64  E  renameat2
 
 # Memory.
-mmap|mmap64(void*, size_t, int, int, int, off_t)    arm64  E  mmap
+__mmap:mmap(void*, size_t, int, int, int, off_t)    arm64  E  mmap
 munmap(void*, size_t)                               arm64  E  munmap
 __mprotect:mprotect(void*, size_t, int)             arm64  E  mprotect
 __madvise:madvise(void*, size_t, int)               arm64  E  madvise
