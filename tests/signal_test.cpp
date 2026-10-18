@@ -246,7 +246,18 @@ static void TestSigAction(int (sigaction_fn)(int, const SigActionT*, SigActionT*
   ASSERT_EQ(0, sigaction_fn(sig, nullptr, &original_sa));
   ASSERT_TRUE(original_sa.sa_handler == nullptr);
   ASSERT_TRUE(original_sa.sa_sigaction == nullptr);
+#if defined(__FreeBSD__)
+  // execve(2) keeps a signal's flags, so a signal that this program did not
+  // set reports what its parents set.  Set the default action with flags 0.
+  SigActionT default_sa = {};
+  ASSERT_EQ(0, sigaction_fn(sig, &default_sa, nullptr));
+  default_sa.sa_flags = -1;
+  ASSERT_EQ(0, sigaction_fn(sig, nullptr, &default_sa));
+  ASSERT_TRUE(default_sa.sa_handler == nullptr);
+  ASSERT_EQ(0, default_sa.sa_flags);
+#else
   ASSERT_EQ(0U, original_sa.sa_flags & ~sa_restorer);
+#endif
 #ifdef SA_RESTORER
   ASSERT_EQ(bool(original_sa.sa_flags & sa_restorer), bool(original_sa.sa_restorer));
 #endif
@@ -299,9 +310,69 @@ TEST(signal, sigaction64_SIGRTMIN) {
   TestSigAction(sigaction64, sigaddset64, SIGRTMIN);
 }
 
-// These tests read the kernel's signal mask as a 64-bit Linux sigset. On
-// FreeBSD sigset_t has 128 bits and SIGRTMIN is 65.
-#if !defined(__FreeBSD__)
+#if defined(__FreeBSD__)
+// FreeBSD's sigset_t is the kernel's 128-bit set, and sigprocmask(2) itself
+// does not hide the signals that bionic keeps for itself (65 and up).
+static void SignalSetAdd(sigset_t* sigset, int signo) {
+  sigset->__bits[(signo - 1) / 32] |= 1U << ((signo - 1) % 32);
+}
+
+static void SignalSetDel(sigset_t* sigset, int signo) {
+  sigset->__bits[(signo - 1) / 32] &= ~(1U << ((signo - 1) % 32));
+}
+
+static void ClearSignalMask() {
+  sigset_t sigset = {};
+  SignalSetAdd(&sigset, __SIGRTMIN);
+  if (syscall(SYS_sigprocmask, SIG_SETMASK, &sigset, nullptr) != 0) {
+    abort();
+  }
+}
+
+static void FillSignalMask() {
+  sigset_t sigset;
+  memset(&sigset, 0xff, sizeof(sigset));
+  for (int signo = __SIGRTMIN + 1; signo < SIGRTMIN; ++signo) {
+    SignalSetDel(&sigset, signo);
+  }
+  if (syscall(SYS_sigprocmask, SIG_SETMASK, &sigset, nullptr) != 0) {
+    abort();
+  }
+}
+
+static sigset_t GetSignalMask() {
+  sigset_t sigset;
+  if (syscall(SYS_sigprocmask, SIG_SETMASK, nullptr, &sigset) != 0) {
+    abort();
+  }
+  return sigset;
+}
+
+static void TestSignalMaskFiltered(const sigset_t& sigset) {
+  for (int signo = __SIGRTMIN; signo < SIGRTMIN; ++signo) {
+    bool signal_blocked = (sigset.__bits[(signo - 1) / 32] & (1U << ((signo - 1) % 32))) != 0;
+    if (signo == __SIGRTMIN) {
+      // TIMER_SIGNAL must be blocked.
+      EXPECT_EQ(true, signal_blocked) << "signal " << signo;
+    } else {
+      // The other reserved signals must not be blocked.
+      EXPECT_EQ(false, signal_blocked) << "signal " << signo;
+    }
+  }
+}
+
+// The mask in a handler whose sa_mask has every signal: all 128 bits but
+// SIGKILL and SIGSTOP, which the kernel never blocks.
+static void TestAllButKillAndStop(const sigset_t& sigset) {
+  sigset_t expected_sigset;
+  memset(&expected_sigset, 0xff, sizeof(expected_sigset));
+  SignalSetDel(&expected_sigset, SIGKILL);
+  SignalSetDel(&expected_sigset, SIGSTOP);
+  for (size_t i = 0; i < sizeof(sigset.__bits) / sizeof(sigset.__bits[0]); ++i) {
+    EXPECT_EQ(expected_sigset.__bits[i], sigset.__bits[i]) << "word " << i;
+  }
+}
+#else
 static void ClearSignalMask() {
   uint64_t sigset = 0;
   SignalSetAdd(&sigset, __SIGRTMIN);
@@ -344,6 +415,7 @@ static void TestSignalMaskFiltered(uint64_t sigset) {
   UNUSED(sigset);
 #endif
 }
+#endif
 
 static void TestSignalMaskFunction(std::function<void()> fn) {
   ClearSignalMask();
@@ -353,7 +425,11 @@ static void TestSignalMaskFunction(std::function<void()> fn) {
 
 TEST(signal, sigaction_filter) {
   ClearSignalMask();
+#if defined(__FreeBSD__)
+  static sigset_t sigset;
+#else
   static uint64_t sigset;
+#endif
   struct sigaction sa = {};
   sa.sa_handler = [](int) { sigset = GetSignalMask(); };
   sa.sa_flags = SA_ONSTACK | SA_NODEFER;
@@ -361,6 +437,9 @@ TEST(signal, sigaction_filter) {
   sigaction(SIGUSR1, &sa, nullptr);
   raise(SIGUSR1);
 
+#if defined(__FreeBSD__)
+  TestAllButKillAndStop(sigset);
+#else
   // On LP32, struct sigaction::sa_mask is only 32-bits wide.
   unsigned long expected_sigset = ~0UL;
 
@@ -369,11 +448,16 @@ TEST(signal, sigaction_filter) {
   expected_sigset &= ~(1UL << (SIGSTOP - 1));
 
   ASSERT_EQ(static_cast<uint64_t>(expected_sigset), sigset);
+#endif
 }
 
 TEST(signal, sigaction64_filter) {
   ClearSignalMask();
+#if defined(__FreeBSD__)
+  static sigset_t sigset;
+#else
   static uint64_t sigset;
+#endif
   struct sigaction64 sa = {};
   sa.sa_handler = [](int) { sigset = GetSignalMask(); };
   sa.sa_flags = SA_ONSTACK | SA_NODEFER;
@@ -381,6 +465,9 @@ TEST(signal, sigaction64_filter) {
   sigaction64(SIGUSR1, &sa, nullptr);
   raise(SIGUSR1);
 
+#if defined(__FreeBSD__)
+  TestAllButKillAndStop(sigset);
+#else
   uint64_t expected_sigset = ~0ULL;
 
   // SIGKILL and SIGSTOP are always blocked.
@@ -388,6 +475,7 @@ TEST(signal, sigaction64_filter) {
   expected_sigset &= ~(1ULL << (SIGSTOP - 1));
 
   ASSERT_EQ(expected_sigset, sigset);
+#endif
 }
 
 TEST(signal, sigprocmask_setmask_filter) {
@@ -502,7 +590,11 @@ TEST(signal, pthread_sigmask64_unblock_filter) {
 TEST(signal, sigset_filter) {
 #if defined(__BIONIC__)
   TestSignalMaskFunction([]() {
+#if defined(__FreeBSD__)
+    for (int i = 1; i <= __SIGRTMAX; ++i) {
+#else
     for (int i = 1; i <= 64; ++i) {
+#endif
       sigset(i, SIG_HOLD);
     }
   });
@@ -512,7 +604,11 @@ TEST(signal, sigset_filter) {
 TEST(signal, sighold_filter) {
 #if defined(__BIONIC__)
   TestSignalMaskFunction([]() {
+#if defined(__FreeBSD__)
+    for (int i = 1; i <= __SIGRTMAX; ++i) {
+#else
     for (int i = 1; i <= 64; ++i) {
+#endif
       sighold(i);
     }
   });
@@ -541,7 +637,6 @@ TEST(signal, sigsetmask_filter) {
   });
 #endif
 }
-#endif  // !__FreeBSD__
 
 TEST(signal, sys_signame) {
 #if defined(__BIONIC__)
