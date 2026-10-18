@@ -171,7 +171,7 @@ getsockopt(int, int, int, void*, socklen_t*)        arm64  E  getsockopt
 __sendto:sendto(int, const void*, size_t, int, const struct sockaddr*, socklen_t)  arm64  E  sendto
 __sendmsg:sendmsg(int, const struct msghdr*, int)  arm64  E  sendmsg
 recvfrom(int, void*, size_t, int, struct sockaddr*, socklen_t*)  arm64  E  recvfrom
-__recvmsg:recvmsg(int, struct msghdr*, int)         arm64  E  recvmsg
+__sys_recvmsg:recvmsg(int, struct msghdr*, int)     arm64  E  recvmsg
 shutdown(int, int)                                  arm64  E  shutdown
 # Signals.
 kill(pid_t, int)                                    arm64  E  kill
