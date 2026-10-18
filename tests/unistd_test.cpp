@@ -234,6 +234,19 @@ TEST(UNISTD_TEST, pause) {
 }
 
 TEST(UNISTD_TEST, read) {
+#if defined(__FreeBSD__)
+  // FreeBSD has no /proc/version, so read the ELF identification of a program.
+  int fd = open(BIN_DIR "sh", O_RDONLY);
+  ASSERT_TRUE(fd != -1);
+
+  char buf[5];
+  ASSERT_EQ(5, read(fd, buf, 5));
+  ASSERT_EQ(buf[0], ELFMAG0);
+  ASSERT_EQ(buf[1], ELFMAG1);
+  ASSERT_EQ(buf[2], ELFMAG2);
+  ASSERT_EQ(buf[3], ELFMAG3);
+  ASSERT_EQ(buf[4], ELFCLASS64);
+#else
   int fd = open("/proc/version", O_RDONLY);
   ASSERT_TRUE(fd != -1);
 
@@ -244,6 +257,7 @@ TEST(UNISTD_TEST, read) {
   ASSERT_EQ(buf[2], 'n');
   ASSERT_EQ(buf[3], 'u');
   ASSERT_EQ(buf[4], 'x');
+#endif
   close(fd);
 }
 
@@ -1286,6 +1300,27 @@ TEST(UNISTD_TEST, sysconf_SC_NPROCESSORS_ONLN) {
 }
 
 TEST(UNISTD_TEST, sysconf_SC_ARG_MAX) {
+#if defined(__FreeBSD__)
+  // FreeBSD's ARG_MAX is a kernel constant, kern.argmax; RLIMIT_STACK does
+  // not change it.
+  int argmax;
+  size_t length = sizeof(argmax);
+  ASSERT_EQ(0, sysctlbyname("kern.argmax", &argmax, &length, nullptr, 0));
+  EXPECT_EQ(argmax, sysconf(_SC_ARG_MAX));
+
+  rlimit rl;
+  ASSERT_EQ(0, getrlimit(RLIMIT_STACK, &rl));
+  const rlimit original_rl = rl;
+  auto guard = android::base::make_scope_guard([&original_rl]() {
+    ASSERT_EQ(0, setrlimit(RLIMIT_STACK, &original_rl));
+  });
+
+  // setrlimit() makes the stack beyond the new limit inaccessible at once,
+  // so only halve it: a limit of a few KiB would take the stack in use.
+  rl.rlim_cur /= 2;
+  ASSERT_EQ(0, setrlimit(RLIMIT_STACK, &rl));
+  EXPECT_EQ(argmax, sysconf(_SC_ARG_MAX));
+#else
   // Since Linux 2.6.23, ARG_MAX isn't a constant and depends on RLIMIT_STACK.
   // See setup_arg_pages() in the kernel for the gory details:
   // https://elixir.bootlin.com/linux/v6.6.4/source/fs/exec.c#L749
@@ -1323,6 +1358,7 @@ TEST(UNISTD_TEST, sysconf_SC_ARG_MAX) {
   ASSERT_EQ(0, setrlimit(RLIMIT_STACK, &rl));
 
   EXPECT_EQ(kernel_stack_expansion, sysconf(_SC_ARG_MAX));
+#endif
 }
 
 TEST(UNISTD_TEST, sysconf_unknown) {
@@ -1545,6 +1581,10 @@ TEST(UNISTD_TEST, setdomainname) {
 
 TEST(UNISTD_TEST, execve_failure) {
   ExecTestHelper eth;
+#if defined(__FreeBSD__)
+  // FreeBSD's execve(2) fails a null argv with EFAULT before the path lookup.
+  eth.SetArgs({"/", nullptr});
+#endif
   ASSERT_ERRNO_FAILURE(EACCES, -1, execve("/", eth.GetArgs(), eth.GetEnv()));
 }
 
@@ -1602,6 +1642,10 @@ TEST(UNISTD_TEST, execle) {
 
 TEST(UNISTD_TEST, execv_failure) {
   ExecTestHelper eth;
+#if defined(__FreeBSD__)
+  // FreeBSD's execve(2) fails a null argv with EFAULT before the path lookup.
+  eth.SetArgs({"/", nullptr});
+#endif
   ASSERT_ERRNO_FAILURE(EACCES, -1, execv("/", eth.GetArgs()));
 }
 
@@ -1624,7 +1668,12 @@ TEST(UNISTD_TEST, execlp) {
 
 TEST(UNISTD_TEST, execvp_failure) {
   ExecTestHelper eth;
+#if defined(__FreeBSD__)
+  // FreeBSD's execve(2) fails an empty argv with EINVAL before the path lookup.
+  eth.SetArgs({"/", nullptr});
+#else
   eth.SetArgs({nullptr});
+#endif
   ASSERT_ERRNO_FAILURE(EACCES, -1, execvp("/", eth.GetArgs()));
 }
 
@@ -1637,6 +1686,10 @@ TEST(UNISTD_TEST, execvp) {
 
 TEST(UNISTD_TEST, execvpe_failure) {
   ExecTestHelper eth;
+#if defined(__FreeBSD__)
+  // FreeBSD's execve(2) fails a null argv with EFAULT before the path lookup.
+  eth.SetArgs({"this-does-not-exist", nullptr});
+#endif
   errno = 0;
   ASSERT_EQ(-1, execvpe("this-does-not-exist", eth.GetArgs(), eth.GetEnv()));
   // Running in CTS we might not even be able to search all directories in $PATH.
@@ -1721,6 +1774,10 @@ TEST(UNISTD_TEST, exec_argv0_null) {
 
 TEST(UNISTD_TEST, fexecve_failure) {
   ExecTestHelper eth;
+#if defined(__FreeBSD__)
+  // FreeBSD's fexecve(2) fails a null argv with EFAULT before it looks at fd.
+  eth.SetArgs({"/", nullptr});
+#endif
   int fd = open("/", O_RDONLY);
   ASSERT_NE(-1, fd);
   ASSERT_ERRNO_FAILURE(EACCES, -1, fexecve(fd, eth.GetArgs(), eth.GetEnv()));
@@ -1729,6 +1786,10 @@ TEST(UNISTD_TEST, fexecve_failure) {
 
 TEST(UNISTD_TEST, fexecve_bad_fd) {
   ExecTestHelper eth;
+#if defined(__FreeBSD__)
+  // FreeBSD's fexecve(2) fails a null argv with EFAULT before it looks at fd.
+  eth.SetArgs({"fexecve", nullptr});
+#endif
   ASSERT_ERRNO_FAILURE(EBADF, -1, fexecve(-1, eth.GetArgs(), eth.GetEnv()));
 }
 
