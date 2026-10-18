@@ -30,7 +30,9 @@
  * 1.3).  The kernel fills in FreeBSD's struct statfs.  f_type gets the Linux
  * magic number of the file system type name, and f_flags gets the Linux ST_*
  * flags, as in FreeBSD's Linux emulation (sys/compat/linux/linux_stats.c).
- * An unknown file system type gives f_type 0.
+ * An unknown file system type gives f_type 0.  fstatfs(2) names a shared
+ * memory descriptor "shm"; Linux keeps memfd objects on tmpfs, and the
+ * linker loads a library from a memfd only when f_type is TMPFS_MAGIC.
  */
 
 #include <string.h>
@@ -63,6 +65,7 @@ static const struct {
 	{ "ntfs",	NTFS_SB_MAGIC },
 	{ "nwfs",	NCP_SUPER_MAGIC },
 	{ "procfs",	PROC_SUPER_MAGIC },
+	{ "shm",	TMPFS_MAGIC },
 	{ "tmpfs",	TMPFS_MAGIC },
 	{ "ufs",	UFS_MAGIC },
 	{ "zfs",	ZFS_SUPER_MAGIC },
