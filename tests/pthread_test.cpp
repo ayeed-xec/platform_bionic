@@ -2463,7 +2463,12 @@ private:
     ASSERT_EQ(LOCK_WAITING, helper->progress);
 
     if (helper->protocol == PTHREAD_PRIO_INHERIT) {
+#if defined(__FreeBSD__)
+      // FreeBSD lends real-time priorities through a PI mutex, not nice values.
+      ASSERT_EQ(21, GetThreadPriority(gettid()));
+#else
       ASSERT_EQ(20, GetThreadPriority(gettid()));
+#endif
     } else {
       ASSERT_EQ(21, GetThreadPriority(gettid()));
     }
