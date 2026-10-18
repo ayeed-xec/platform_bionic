@@ -129,10 +129,11 @@ __umtx_op|_umtx_op:_umtx_op(void*, int, unsigned long, void*, void*)  arm64  F  
 __cpuset_getaffinity:cpuset_getaffinity(int, int, id_t, size_t, void*)  arm64  N  sched_getaffinity
 __cpuset_setaffinity:cpuset_setaffinity(int, int, id_t, size_t, const void*)  arm64  N  sched_setaffinity
 sched_yield()                                       arm64  E  sched_yield
-sched_getscheduler(pid_t)                           arm64  E  sched_getscheduler
-sched_getparam(pid_t, struct sched_param*)          arm64  E  sched_getparam
-sched_setparam(pid_t, const struct sched_param*)    arm64  E  sched_setparam
-sched_setscheduler(pid_t, int, const struct sched_param*)  arm64  E  sched_setscheduler
+__rtprio_thread:rtprio_thread(int, pid_t, struct rtprio*)  arm64  F  -
+__sched_getscheduler:sched_getscheduler(pid_t)      arm64  E  sched_getscheduler
+__sched_getparam:sched_getparam(pid_t, struct sched_param*)  arm64  E  sched_getparam
+__sched_setparam:sched_setparam(pid_t, const struct sched_param*)  arm64  E  sched_setparam
+__sched_setscheduler:sched_setscheduler(pid_t, int, const struct sched_param*)  arm64  E  sched_setscheduler
 sched_get_priority_max(int)                         arm64  E  sched_get_priority_max
 sched_get_priority_min(int)                         arm64  E  sched_get_priority_min
 
