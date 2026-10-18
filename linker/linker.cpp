@@ -41,6 +41,10 @@
 #include <sys/vfs.h>
 #include <unistd.h>
 
+#if defined(__FreeBSD__)
+#include <bits/freebsd/user.h>
+#endif
+
 #include <cstdint>
 #include <iterator>
 #include <new>
@@ -384,6 +388,22 @@ static bool is_proc_mounted() {
 }
 
 static bool realpath_fd(int fd, std::string* realpath) {
+#if defined(__FreeBSD__)
+  // No /proc/self/fd: F_KINFO gives the path of the file from the name
+  // cache. kf_path is empty when the kernel has no name for it.
+  struct kinfo_file kf;
+  kf.kf_structsize = sizeof(kf);
+  if (fcntl(fd, F_KINFO, &kf) == -1) {
+    DL_WARN("fcntl(%d, F_KINFO) failed: %m", fd);
+    return false;
+  }
+  if (kf.kf_path[0] == '\0') {
+    return false;
+  }
+
+  realpath->assign(kf.kf_path);
+  return true;
+#else
   // proc_self_fd needs to be large enough to hold "/proc/self/fd/" plus an
   // integer, plus the NULL terminator.
   char proc_self_fd[32];
@@ -400,6 +420,7 @@ static bool realpath_fd(int fd, std::string* realpath) {
 
   realpath->assign(buf, length);
   return true;
+#endif
 }
 
 // Returns the address of the current thread's copy of a TLS module. If the current thread doesn't

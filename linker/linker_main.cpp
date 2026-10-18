@@ -862,6 +862,12 @@ __linker_init_post_relocation(KernelArgumentBlock& args, soinfo& tmp_linker_so) 
   g_argv = args.argv + __libc_shared_globals()->initial_linker_arg_count;
   g_envp = args.envp;
   __libc_shared_globals()->init_progname = g_argv[0];
+#if defined(__FreeBSD__)
+  // libc.so names the program in __libc_init_common(), but the linker has its
+  // own getprogname(). liblog takes its default tag from it, so a log call
+  // without a tag (libziparchive on a bad zip) would crash on a null name.
+  setprogname(g_argv[0] ?: "<unknown>");
+#endif
 
   solinker = get_libdl_info(tmp_linker_so);
   g_default_namespace.add_soinfo(solinker);
