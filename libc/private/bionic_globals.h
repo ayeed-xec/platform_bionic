@@ -45,6 +45,10 @@
 
 struct libc_globals {
   vdso_entry vdso[VDSO_END];
+#if defined(__FreeBSD__)
+  // The timekeep page of the kernel (AT_TIMEKEEP), or null.
+  const void* freebsd_timekeep;
+#endif
   long setjmp_cookie;
   uintptr_t heap_pointer_tag;
   _Atomic(bool) decay_time_enabled;

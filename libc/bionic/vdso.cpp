@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include "private/bionic_auxv.h"
 #include "private/bionic_globals.h"
 #include "private/bionic_vdso.h"
 
@@ -31,6 +32,10 @@
 extern "C" int __clock_gettime(int, struct timespec*);
 extern "C" int __clock_getres(int, struct timespec*);
 extern "C" int __gettimeofday(struct timeval*, struct timezone*);
+#if defined(__FreeBSD__)
+extern "C" int __freebsd_timekeep_clock_gettime(const void*, clockid_t, timespec*);
+extern "C" int __freebsd_timekeep_gettimeofday(const void*, timeval*);
+#endif
 
 static inline int vdso_return(int result) {
   if (__predict_true(result == 0)) return 0;
@@ -40,12 +45,22 @@ static inline int vdso_return(int result) {
 }
 
 int clock_gettime(int clock_id, timespec* tp) {
+#if defined(__FreeBSD__)
+  // FreeBSD has no vdso. The timekeep page gives the time without a system
+  // call; for a clock that the page does not have, ask the kernel.
+  const void* tk = __libc_globals->freebsd_timekeep;
+  if (__predict_true(tk != nullptr) && __freebsd_timekeep_clock_gettime(tk, clock_id, tp) == 0) {
+    return 0;
+  }
+  return __clock_gettime(clock_id, tp);
+#else
   auto vdso_clock_gettime = reinterpret_cast<decltype(&clock_gettime)>(
     __libc_globals->vdso[VDSO_CLOCK_GETTIME].fn);
   if (__predict_true(vdso_clock_gettime)) {
     return vdso_return(vdso_clock_gettime(clock_id, tp));
   }
   return __clock_gettime(clock_id, tp);
+#endif
 }
 
 int clock_getres(int clock_id, timespec* tp) {
@@ -58,12 +73,21 @@ int clock_getres(int clock_id, timespec* tp) {
 }
 
 int gettimeofday(timeval* tv, struct timezone* tz) {
+#if defined(__FreeBSD__)
+  const void* tk = __libc_globals->freebsd_timekeep;
+  if (__predict_true(tk != nullptr && tz == nullptr) &&
+      __freebsd_timekeep_gettimeofday(tk, tv) == 0) {
+    return 0;
+  }
+  return __gettimeofday(tv, tz);
+#else
   auto vdso_gettimeofday = reinterpret_cast<decltype(&gettimeofday)>(
     __libc_globals->vdso[VDSO_GETTIMEOFDAY].fn);
   if (__predict_true(vdso_gettimeofday)) {
     return vdso_return(vdso_gettimeofday(tv, tz));
   }
   return __gettimeofday(tv, tz);
+#endif
 }
 
 time_t time(time_t* t) {
@@ -120,7 +144,11 @@ void __libc_init_vdso(libc_globals* globals) {
 
   // Do we have a vdso?
 #if defined(__FreeBSD__)
-  // FreeBSD has no vdso with these functions (no AT_SYSINFO_EHDR).
+  // FreeBSD has no vdso with these functions (no AT_SYSINFO_EHDR), but it
+  // has the timekeep page.
+  bool exists;
+  globals->freebsd_timekeep =
+      reinterpret_cast<const void*>(__bionic_getauxval(AT_TIMEKEEP, &exists));
   uintptr_t vdso_ehdr_addr = 0;
 #else
   uintptr_t vdso_ehdr_addr = getauxval(AT_SYSINFO_EHDR);
