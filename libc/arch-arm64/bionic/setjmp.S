@@ -50,10 +50,17 @@
 // 24     checksum
 // 25     reserved        reserved entries (room to grow)
 // 32
+//
+// FreeBSD's sigset_t is 128 bits, so there the signal mask takes words 1
+// and 2, and every later entry moves up one word.
 
 #define _JB_SIGFLAG     0
 #define _JB_SIGMASK     (_JB_SIGFLAG + 1)
+#if defined(__FreeBSD__)
+#define _JB_X30_SP      (_JB_SIGMASK + 2)
+#else
 #define _JB_X30_SP      (_JB_SIGMASK + 1)
+#endif
 #define _JB_X28_X29     (_JB_X30_SP  + 2)
 #define _JB_X26_X27     (_JB_X28_X29 + 2)
 #define _JB_X24_X25     (_JB_X26_X27 + 2)
@@ -89,6 +96,10 @@
     ldr \scratch, [\src, #(\i * 8)]
     eor \dst, \dst, \scratch
   .endr
+#if defined(__FreeBSD__)
+  ldr \scratch, [\src, #(24 * 8)]
+  eor \dst, \dst, \scratch
+#endif
 .endm
 
 .macro m_unmangle_registers reg, sp_reg
@@ -225,7 +236,11 @@ ENTRY_WEAK_FOR_NATIVE_BRIDGE(siglongjmp)
 
   // Restore signal mask.
   mov x21, x2
+#if defined(__FreeBSD__)
+  mov x0, #3 // SIG_SETMASK.
+#else
   mov x0, #2 // SIG_SETMASK.
+#endif
   add x1, x19, #(_JB_SIGMASK * 8) // new_mask.
   mov x2, #0 // NULL.
   bl sigprocmask
