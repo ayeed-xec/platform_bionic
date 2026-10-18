@@ -74,6 +74,15 @@ mkdirat(int, const char*, mode_t)                   arm64  E  mkdirat
 readlinkat(int, const char*, char*, size_t)         arm64  E  readlinkat
 symlinkat(const char*, int, const char*)            arm64  E  symlinkat
 __getdirentries:getdirentries(int, char*, size_t, off_t*)  arm64  N  getdents64
+__extattr_get_fd:extattr_get_fd(int, int, const char*, void*, size_t)  arm64  N  fgetxattr
+__extattr_get_file:extattr_get_file(const char*, int, const char*, void*, size_t)  arm64  N  getxattr
+__extattr_get_link:extattr_get_link(const char*, int, const char*, void*, size_t)  arm64  N  lgetxattr
+__extattr_set_fd:extattr_set_fd(int, int, const char*, const void*, size_t)  arm64  N  fsetxattr
+__extattr_set_file:extattr_set_file(const char*, int, const char*, const void*, size_t)  arm64  N  setxattr
+__extattr_set_link:extattr_set_link(const char*, int, const char*, const void*, size_t)  arm64  N  lsetxattr
+__extattr_delete_fd:extattr_delete_fd(int, int, const char*)  arm64  N  fremovexattr
+__extattr_delete_file:extattr_delete_file(const char*, int, const char*)  arm64  N  removexattr
+__extattr_delete_link:extattr_delete_link(const char*, int, const char*)  arm64  N  lremovexattr
 __sys___realpathat:__realpathat(int, const char*, char*, size_t, int)  arm64  F  -
 faccessat(int, const char*, int, int)               arm64  E  faccessat
 fchmodat(int, const char*, mode_t, int)             arm64  E  fchmodat
