@@ -29,7 +29,8 @@
  * Socket constants and structures of the FreeBSD kernel ABI, from FreeBSD
  * sys/sys/socket.h.  The CMSG_* alignment is the _ALIGNBYTES of FreeBSD
  * sys/arm64/include/_align.h.  The FreeBSD kernel reads these values, so
- * they are the FreeBSD values.  Names that only Linux has are not defined.
+ * they are the FreeBSD values.  Names that only Linux has are not defined,
+ * except the credential names, which the libc maps.
  * struct sockaddr_storage is in bits/sockaddr_storage.h.  abi_check.c
  * checks them.
  */
@@ -225,6 +226,23 @@
 #define	SCM_TIMESTAMP		0x02
 #define	SCM_REALTIME		0x05
 #define	SCM_MONOTONIC		0x06
+
+/*
+ * The credential names of Linux AF_UNIX sockets.  FreeBSD has the same
+ * information under other names: setsockopt(), getsockopt() and recvmsg()
+ * of bionic-freebsd map these values, and the kernel never sees them.
+ * Each value is 0x40000000 or-ed with the Linux value.
+ */
+#define	SO_PASSCRED		0x40000010
+#define	SO_PEERCRED		0x40000011
+#define	SO_PEERGROUPS		0x4000003b
+#define	SCM_CREDENTIALS		0x40000002
+
+struct ucred {
+	pid_t	pid;
+	uid_t	uid;
+	gid_t	gid;
+};
 
 /* The how argument of shutdown(2). */
 enum shutdown_how {

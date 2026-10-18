@@ -59,6 +59,7 @@ __openat:openat(int, const char*, int, mode_t)      arm64  E  openat
 __close:close(int)                                  arm64  E  close
 lseek|lseek64(int, off_t, int)                      arm64  E  lseek
 __ioctl:ioctl(int, int, void*)                      arm64  E  ioctl
+__posix_openpt:posix_openpt(int)                    arm64  F  -
 __fcntl:fcntl(int, int, void*)                      arm64  E  fcntl
 fstat64|fstat:fstat(int, struct stat*)              arm64  E  fstat
 fstatat64|fstatat:fstatat(int, const char*, struct stat*, int)  arm64  N  newfstatat
@@ -88,6 +89,7 @@ faccessat(int, const char*, int, int)               arm64  E  faccessat
 fchmodat(int, const char*, mode_t, int)             arm64  E  fchmodat
 fchmod(int, mode_t)                                 arm64  E  fchmod
 fchown(int, uid_t, gid_t)                           arm64  E  fchown
+fchownat(int, const char*, uid_t, gid_t, int)       arm64  E  fchownat
 __getcwd(char*, size_t)                             arm64  N  getcwd
 execve(const char*, char* const*, char* const*)     arm64  E  execve
 __fexecve:fexecve(int, char* const*, char* const*)  arm64  F  -
@@ -178,8 +180,8 @@ listen(int, int)                                    arm64  E  listen
 __accept4:accept4(int, struct sockaddr*, socklen_t*, int)  arm64  E  accept4
 getsockname(int, struct sockaddr*, socklen_t*)      arm64  E  getsockname
 getpeername(int, struct sockaddr*, socklen_t*)      arm64  E  getpeername
-setsockopt(int, int, int, const void*, socklen_t)   arm64  E  setsockopt
-getsockopt(int, int, int, void*, socklen_t*)        arm64  E  getsockopt
+__sys_setsockopt:setsockopt(int, int, int, const void*, socklen_t)  arm64  E  setsockopt
+__sys_getsockopt:getsockopt(int, int, int, void*, socklen_t*)  arm64  E  getsockopt
 __sendto:sendto(int, const void*, size_t, int, const struct sockaddr*, socklen_t)  arm64  E  sendto
 __sendmsg:sendmsg(int, const struct msghdr*, int)  arm64  E  sendmsg
 recvfrom(int, void*, size_t, int, struct sockaddr*, socklen_t*)  arm64  E  recvfrom
@@ -214,8 +216,11 @@ __timer_gettime:ktimer_gettime(int, struct itimerspec*)  arm64  N  timer_gettime
 __timer_settime:ktimer_settime(int, int, const struct itimerspec*, struct itimerspec*)  arm64  N  timer_settime
 __gettimeofday:gettimeofday(struct timeval*, struct timezone*)  arm64  E  gettimeofday
 
-# Events.  epoll_create1() and eventfd() call __specialfd(); epoll_wait() and
-# epoll_pwait() call epoll_pwait2() with the timeout in a timespec.
+# Events.  epoll_create1(), eventfd() and inotify_init1() call __specialfd();
+# epoll_wait() and epoll_pwait() call epoll_pwait2() with the timeout in a
+# timespec; inotify_add_watch() calls inotify_add_watch_at() with AT_FDCWD.
 __specialfd(int, const void*, size_t)               arm64  F  -
 epoll_ctl(int, int, int, struct epoll_event*)       arm64  E  epoll_ctl
 __epoll_pwait2:epoll_pwait2(int, struct epoll_event*, int, const struct timespec*, const sigset_t*)  arm64  E  epoll_pwait2
+__inotify_add_watch_at:inotify_add_watch_at(int, int, const char*, uint32_t)  arm64  N  inotify_add_watch
+inotify_rm_watch(int, uint32_t)                     arm64  E  inotify_rm_watch

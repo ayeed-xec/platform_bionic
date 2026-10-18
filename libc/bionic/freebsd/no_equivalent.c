@@ -32,6 +32,9 @@
  *
  * brk, sbrk		FreeBSD/arm64 has no break(2); malloc uses mmap(2).
  *			Both fail with ENOMEM.
+ * klogctl		The kern.msgbuf sysctl reads the whole kernel message
+ *			buffer, but FreeBSD has no read that consumes it and no
+ *			count of unread bytes.  ENOSYS.
  * mremap		FreeBSD cannot move a mapping or grow it in place, and
  *			a copy would break shared mappings.  ENOSYS.
  * mseal		Nothing stops later mprotect(2) or munmap(2) calls on a
@@ -46,6 +49,7 @@ int	brk(void *);
 void	*sbrk(intptr_t);
 void	*mremap(void *, size_t, size_t, int, ...);
 int	mseal(void *, size_t, unsigned long);
+int	klogctl(int, char *, int);
 
 int
 brk(void *addr)
@@ -80,6 +84,16 @@ mseal(void *addr, size_t len, unsigned long flags)
 	(void)addr;
 	(void)len;
 	(void)flags;
+	errno = ENOSYS;
+	return (-1);
+}
+
+int
+klogctl(int type, char *buf, int len)
+{
+	(void)type;
+	(void)buf;
+	(void)len;
 	errno = ENOSYS;
 	return (-1);
 }
