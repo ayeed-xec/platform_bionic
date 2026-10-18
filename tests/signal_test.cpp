@@ -865,10 +865,11 @@ TEST(signal, sigtimedwait_timeout) {
 }
 
 #if defined(__BIONIC__)
-TEST(signal, rt_tgsigqueueinfo) {
 #if defined(__FreeBSD__)
-  GTEST_SKIP() << "bionic-freebsd: rt_tgsigqueueinfo has no FreeBSD equivalent";
-#else
+// FreeBSD's thr_sigqueueinfo(2) takes the arguments of rt_tgsigqueueinfo.
+#define SYS_rt_tgsigqueueinfo SYS_thr_sigqueueinfo
+#endif
+TEST(signal, rt_tgsigqueueinfo) {
   // Test whether rt_tgsigqueueinfo allows sending arbitrary si_code values to self.
   // If this fails, your kernel needs commit 66dd34a to be backported.
   static constexpr char error_msg[] =
@@ -895,7 +896,6 @@ TEST(signal, rt_tgsigqueueinfo) {
   ASSERT_EQ(sent.si_code, received.si_code) << "rt_tgsigqueueinfo modified si_code, expected "
                                             << sent.si_code << ", received " << received.si_code
                                             << error_msg;
-#endif
 }
 #endif
 

@@ -36,7 +36,6 @@
  *			a copy would break shared mappings.  ENOSYS.
  * mseal		Nothing stops later mprotect(2) or munmap(2) calls on a
  *			range.  ENOSYS, which callers take as an older kernel.
- * rt_tgsigqueueinfo	sigqueue(2) can only target a process, not a thread.
  */
 
 #include <errno.h>
@@ -47,7 +46,6 @@ int	brk(void *);
 void	*sbrk(intptr_t);
 void	*mremap(void *, size_t, size_t, int, ...);
 int	mseal(void *, size_t, unsigned long);
-int	__rt_tgsigqueueinfo(pid_t, pid_t, int, void *);
 
 int
 brk(void *addr)
@@ -82,17 +80,6 @@ mseal(void *addr, size_t len, unsigned long flags)
 	(void)addr;
 	(void)len;
 	(void)flags;
-	errno = ENOSYS;
-	return (-1);
-}
-
-int
-__rt_tgsigqueueinfo(pid_t pid, pid_t tid, int sig, void *info)
-{
-	(void)pid;
-	(void)tid;
-	(void)sig;
-	(void)info;
 	errno = ENOSYS;
 	return (-1);
 }

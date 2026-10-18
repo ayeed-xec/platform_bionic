@@ -193,6 +193,7 @@ __rt_sigpending:sigpending(sigset_t*)               arm64  N  rt_sigpending
 __rt_sigsuspend:sigsuspend(const sigset_t*)         arm64  N  rt_sigsuspend
 __rt_sigtimedwait:sigtimedwait(const sigset_t*, siginfo_t*, const struct timespec*)  arm64  N  rt_sigtimedwait
 __sigqueue:sigqueue(pid_t, int, void*)              arm64  N  rt_sigqueueinfo
+__rt_tgsigqueueinfo:thr_sigqueueinfo(pid_t, long, int, siginfo_t*)  arm64  N  rt_tgsigqueueinfo
 sigaltstack(const stack_t*, stack_t*)               arm64  E  sigaltstack
 
 # Time.
