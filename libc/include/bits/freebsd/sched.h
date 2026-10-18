@@ -46,6 +46,8 @@
 #define	SCHED_RR		3
 #define	SCHED_RESET_ON_FORK	0x40000000
 
+/* The low byte of the clone() flags is the signal of the child's exit. */
+#define	CSIGNAL			0x000000ff
 #define	CLONE_VM		0x00000100
 #define	CLONE_FS		0x00000200
 #define	CLONE_FILES		0x00000400

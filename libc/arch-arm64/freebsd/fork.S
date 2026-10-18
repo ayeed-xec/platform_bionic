@@ -42,4 +42,47 @@ ENTRY_PRIVATE(__freebsd_fork)
 	ret
 END(__freebsd_fork)
 
+/*
+ * pid_t __freebsd_rfork(int flags)
+ *
+ * rfork(2) for a clone() that returns in the child as fork() does.
+ */
+ENTRY_PRIVATE(__freebsd_rfork)
+	mov	x8, SYS_rfork
+	svc	#0
+	b.cs	__set_errno_from_freebsd
+	sub	x1, x1, #1
+	and	x0, x0, x1
+	ret
+END(__freebsd_rfork)
+
+/*
+ * pid_t __freebsd_clone(int flags, void *child_stack, int (*fn)(void *),
+ *     void *arg, int use_vfork)
+ *
+ * rfork(2), or vfork(2) when use_vfork is not 0, for a clone() with a
+ * function.  The kernel gives the child the registers of the parent from
+ * x2 up, so the child moves to its stack before it touches memory, and then
+ * calls __start_thread(fn, arg), which does not return.
+ */
+ENTRY_PRIVATE(__freebsd_clone)
+	mov	x9, x1
+	mov	x8, SYS_rfork
+	cbz	x4, 1f
+	mov	x8, SYS_vfork
+1:	svc	#0
+	b.cs	__set_errno_from_freebsd
+	sub	x1, x1, #1
+	and	x0, x0, x1
+	cbz	x0, 2f
+	ret
+2:	mov	sp, x9
+	/* The end of the frame record chain; the unwinder stops here. */
+	mov	fp, #0
+	mov	lr, #0
+	mov	x0, x2
+	mov	x1, x3
+	b	__start_thread
+END(__freebsd_clone)
+
 NOTE_GNU_PROPERTY()

@@ -41,6 +41,13 @@
 #define	WEXITED		16
 #define	WTRAPPED	32
 
+/*
+ * Wait for a child that sends another signal than SIGCHLD, or none, when it
+ * exits (clone() with another exit signal).  FreeBSD WLINUXCLONE has the
+ * Linux value.
+ */
+#define	__WCLONE	0x80000000
+
 #define	P_PID		0
 #define	P_PGID		2
 #define	P_ALL		7

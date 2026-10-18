@@ -688,9 +688,17 @@ static void TestGetTidWorksAfterFork(int (*fork_fn)(), void (*exit_fn)(int)) {
   ASSERT_NE(fork_result, -1);
   if (fork_result == 0) {
     // We're the child.
+#if defined(__FreeBSD__)
+    // A FreeBSD thread id is never the pid: the only thread of the child is
+    // the main thread of its process.
+    EXPECT_EQ(MainThreadTid(), RawGettid());
+    EXPECT_EQ(RawGettid(), GetTidForTest()) << "real tid is " << RawGettid()
+                                            << ", pid is " << syscall(SYS_getpid);
+#else
     EXPECT_EQ(syscall(SYS_getpid), RawGettid());
     EXPECT_EQ(getpid(), GetTidForTest()) << "real tid is " << RawGettid()
                                          << ", pid is " << syscall(SYS_getpid);
+#endif
     ASSERT_NO_FATAL_FAILURE(AssertGetTidCorrect());
     exit_fn(123);
   } else {
