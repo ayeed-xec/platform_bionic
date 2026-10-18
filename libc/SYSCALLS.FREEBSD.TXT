@@ -64,6 +64,7 @@ fstat64|fstat:fstat(int, struct stat*)              arm64  E  fstat
 fstatat64|fstatat:fstatat(int, const char*, struct stat*, int)  arm64  N  newfstatat
 __statfs:statfs(const char*, struct __freebsd_statfs*)  arm64  N  statfs
 __fstatfs:fstatfs(int, struct __freebsd_statfs*)    arm64  N  fstatfs
+__unmount:unmount(const char*, int)                 arm64  N  umount2
 __dup:dup(int)                                      arm64  E  dup
 __pipe2:pipe2(int*, int)                            arm64  E  pipe2
 unlinkat(int, const char*, int)                     arm64  E  unlinkat
