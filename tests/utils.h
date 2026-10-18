@@ -106,6 +106,19 @@ static inline pid_t RawGettid() {
 #endif
 }
 
+#if defined(__FreeBSD__)
+// FreeBSD thread ids are not the pid. kern.proc.pid without
+// KERN_PROC_INC_THREAD gives the id of the first thread of the process, which
+// is the main thread.
+static inline pid_t MainThreadTid() {
+  int mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid()};
+  kinfo_proc kp;
+  size_t kp_size = sizeof(kp);
+  if (sysctl(mib, 4, &kp, &kp_size, nullptr, 0) != 0) return -1;
+  return kp.ki_tid;
+}
+#endif
+
 struct map_record {
   uintptr_t addr_start;
   uintptr_t addr_end;

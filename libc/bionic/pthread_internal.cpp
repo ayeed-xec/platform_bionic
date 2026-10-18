@@ -32,6 +32,7 @@
 #include <semaphore.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/auxv.h>
 #include <sys/mman.h>
 #include <sys/prctl.h>
 #include <sys/types.h>
@@ -43,6 +44,7 @@
 
 #include "private/ErrnoRestorer.h"
 #include "private/ScopedRWLock.h"
+#include "private/bionic_auxv.h"
 #include "private/bionic_futex.h"
 #include "private/bionic_globals.h"
 #include "private/bionic_tls.h"
@@ -124,6 +126,19 @@ pthread_internal_t* __pthread_internal_find(pthread_t thread_id, const char* cal
   return nullptr;
 }
 
+#if defined(__FreeBSD__)
+// The kernel gives the top of the main thread's stack in AT_USRSTACKBASE, and
+// the size limit of the stack at exec in AT_USRSTACKLIM. No /proc is needed.
+void __find_main_stack_limits(uintptr_t* low, uintptr_t* high) {
+  bool exists;
+  uintptr_t top = __bionic_getauxval(AT_USRSTACKBASE, &exists);
+  if (!exists) async_safe_fatal("no AT_USRSTACKBASE in the auxiliary vector");
+  uintptr_t limit = __bionic_getauxval(AT_USRSTACKLIM, &exists);
+  if (!exists) async_safe_fatal("no AT_USRSTACKLIM in the auxiliary vector");
+  *low = top - limit;
+  *high = top;
+}
+#else
 static uintptr_t __get_main_stack_startstack() {
   FILE* fp = fopen("/proc/self/stat", "re");
   if (fp == nullptr) {
@@ -179,6 +194,7 @@ void __find_main_stack_limits(uintptr_t* low, uintptr_t* high) {
   }
   async_safe_fatal("stack not found in /proc/self/maps");
 }
+#endif
 
 #if defined(__aarch64__)
 __LIBC_HIDDEN__ void* __allocate_stack_mte_ringbuffer(size_t n, pthread_internal_t* thread) {

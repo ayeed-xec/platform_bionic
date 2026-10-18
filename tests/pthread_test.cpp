@@ -1864,11 +1864,12 @@ TEST(pthread, pthread_cond_clockwait_invalid) {
 }
 
 TEST(pthread, pthread_attr_getstack__main_thread) {
-#if defined(__FreeBSD__)
-  GTEST_SKIP() << "bionic-freebsd: the main thread's tid is not the pid, and there is no /proc/self/maps";
-#else
   // This test is only meaningful for the main thread, so make sure we're running on it!
+#if defined(__FreeBSD__)
+  ASSERT_EQ(MainThreadTid(), RawGettid());
+#else
   ASSERT_EQ(getpid(), syscall(__NR_gettid));
+#endif
 
   // Get the main thread's attributes.
   pthread_attr_t attributes;
@@ -1905,6 +1906,17 @@ TEST(pthread, pthread_attr_getstack__main_thread) {
       break;
     }
   }
+#if defined(__FreeBSD__)
+  // FreeBSD does not merge stack map entries again after a split, for example
+  // after sysctl(3) wired a buffer on the stack. Follow the adjacent entries
+  // up to the top of the stack.
+  for (const auto& map : maps) {
+    if (map.addr_start == reinterpret_cast<uintptr_t>(maps_stack_hi) &&
+        (map.perms & (PROT_READ | PROT_WRITE)) == (PROT_READ | PROT_WRITE)) {
+      maps_stack_hi = reinterpret_cast<void*>(map.addr_end);
+    }
+  }
+#endif
 
   // The high address of the /proc/self/maps stack region should equal stack_base + stack_size.
   // Remember that the stack grows down (and is mapped in on demand), so the low address of the
@@ -1925,11 +1937,25 @@ TEST(pthread, pthread_attr_getstack__main_thread) {
     ASSERT_EQ(0, setrlimit(RLIMIT_STACK, &rl));
   });
 
+#if defined(__FreeBSD__)
+  // FreeBSD makes the part of the stack beyond a lowered RLIMIT_STACK
+  // inaccessible (kern_resource.c), so a limit below the stack in use kills
+  // the test. The size must still follow the current limit: use 1MiB, far
+  // above the stack that the test uses, and then 1MiB plus 6666. The hard
+  // limit is maxssiz, not RLIM_INFINITY, and only root can raise it, so keep
+  // it.
+  static constexpr size_t kSmallLimit = 1024 * 1024;
+  const rlim_t max_limit = rl.rlim_max;
+#else
+  static constexpr size_t kSmallLimit = 1024;
+  const rlim_t max_limit = RLIM_INFINITY;
+#endif
+
   //
   // What if RLIMIT_STACK is smaller than the stack's current extent?
   //
-  rl.rlim_cur = rl.rlim_max = 1024; // 1KiB. We know the stack must be at least a page already.
-  rl.rlim_max = RLIM_INFINITY;
+  rl.rlim_cur = rl.rlim_max = kSmallLimit; // 1KiB on Linux. We know the stack must be at least a page already.
+  rl.rlim_max = max_limit;
   ASSERT_EQ(0, setrlimit(RLIMIT_STACK, &rl));
 
   ASSERT_EQ(0, pthread_getattr_np(pthread_self(), &attributes));
@@ -1937,13 +1963,13 @@ TEST(pthread, pthread_attr_getstack__main_thread) {
   ASSERT_EQ(0, pthread_attr_getstacksize(&attributes, &stack_size2));
 
   EXPECT_EQ(stack_size, stack_size2);
-  ASSERT_EQ(1024U, stack_size);
+  ASSERT_EQ(kSmallLimit, stack_size);
 
   //
   // What if RLIMIT_STACK isn't a whole number of pages?
   //
-  rl.rlim_cur = rl.rlim_max = 6666; // Not a whole number of pages.
-  rl.rlim_max = RLIM_INFINITY;
+  rl.rlim_cur = rl.rlim_max = kSmallLimit - 1024 + 6666; // Not a whole number of pages.
+  rl.rlim_max = max_limit;
   ASSERT_EQ(0, setrlimit(RLIMIT_STACK, &rl));
 
   ASSERT_EQ(0, pthread_getattr_np(pthread_self(), &attributes));
@@ -1951,8 +1977,7 @@ TEST(pthread, pthread_attr_getstack__main_thread) {
   ASSERT_EQ(0, pthread_attr_getstacksize(&attributes, &stack_size2));
 
   EXPECT_EQ(stack_size, stack_size2);
-  ASSERT_EQ(6666U, stack_size);
-#endif
+  ASSERT_EQ(kSmallLimit - 1024 + 6666, stack_size);
 #endif
 }
 
@@ -1996,11 +2021,12 @@ static GetStackSignalHandlerArg getstack_signal_handler_arg;
 // the wrong map with [stack]. This test verifies that when the above situation happens, the main
 // thread's stack is found correctly.
 TEST(pthread, pthread_attr_getstack_in_signal_handler) {
-#if defined(__FreeBSD__)
-  GTEST_SKIP() << "bionic-freebsd: the main thread's tid is not the pid";
-#else
   // This test is only meaningful for the main thread, so make sure we're running on it!
+#if defined(__FreeBSD__)
+  ASSERT_EQ(MainThreadTid(), RawGettid());
+#else
   ASSERT_EQ(getpid(), syscall(__NR_gettid));
+#endif
 
   const size_t sig_stack_size = 16 * 1024;
   void* sig_stack = mmap(nullptr, sig_stack_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS,
@@ -2030,7 +2056,6 @@ TEST(pthread, pthread_attr_getstack_in_signal_handler) {
 
   ASSERT_EQ(0, sigaltstack(&oss, nullptr));
   ASSERT_EQ(0, munmap(sig_stack, sig_stack_size));
-#endif
 }
 
 static void pthread_attr_getstack_18908062_helper(void*) {

@@ -206,7 +206,12 @@ int pthread_getattr_np(pthread_t t, pthread_attr_t* attr) {
   // The main thread's stack information is not stored in thread->attr,
   // and we need to query it at runtime because it can change:
   // the kernel will automatically expand the main thread's stack up to RLIMIT_STACK.
+#if defined(__FreeBSD__)
+  // FreeBSD thread ids are never the pid.
+  if (thread == __main_thread) {
+#else
   if (thread->tid == getpid()) {
+#endif
     return __pthread_attr_getstack_main_thread(&attr->stack_base, &attr->stack_size);
   }
   return 0;
