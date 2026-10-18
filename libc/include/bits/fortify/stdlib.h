@@ -32,8 +32,13 @@
 
 #if defined(__BIONIC_FORTIFY)
 
+#if defined(__FreeBSD__)
+/* PATH_MAX is 1024 on FreeBSD; see <bits/freebsd/limits.h>. */
+#define __PATH_MAX 1024
+#else
 /* PATH_MAX is unavailable without polluting the namespace, but it's always 4096 on Linux */
 #define __PATH_MAX 4096
+#endif
 
 char* _Nullable realpath(const char* _Nonnull path, char* _Nullable resolved)
         __clang_error_if(!path, "'realpath': NULL path is never correct; flipped arguments?")
