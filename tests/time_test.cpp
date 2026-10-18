@@ -841,7 +841,12 @@ static int GetThreadCount() {
 }
 
 TEST(time, timer_create_EINVAL) {
+#if defined(__FreeBSD__)
+  // FreeBSD's clock ids end at CLOCK_TAI (16).
+  const clockid_t kInvalidClock = CLOCK_TAI + 1;
+#else
   const clockid_t kInvalidClock = 16;
+#endif
 
   // A SIGEV_SIGNAL timer failure is easy; that's the kernel's problem.
   timer_t timer_id;
@@ -1024,17 +1029,40 @@ TEST(time, clock_gettime_unknown) {
   ASSERT_ERRNO_FAILURE(EINVAL, -1, clock_gettime(-1, &ts));
 }
 
+#if defined(__FreeBSD__)
+// FreeBSD gives the period of the timecounter in use as the resolution of
+// the clocks that read it, rounded up by adding 1 ns.
+static long TimecounterResolution() {
+  char hardware[32];
+  size_t length = sizeof(hardware);
+  if (sysctlbyname("kern.timecounter.hardware", hardware, &length, nullptr, 0) == -1) return -1;
+  std::string name = std::string("kern.timecounter.tc.") + hardware + ".frequency";
+  uint64_t frequency;
+  length = sizeof(frequency);
+  if (sysctlbyname(name.c_str(), &frequency, &length, nullptr, 0) == -1) return -1;
+  return 1000000000 / frequency + 1;
+}
+#endif
+
 TEST(time, clock_getres_CLOCK_REALTIME) {
   timespec ts;
   ASSERT_EQ(0, clock_getres(CLOCK_REALTIME, &ts));
+#if defined(__FreeBSD__)
+  ASSERT_EQ(TimecounterResolution(), ts.tv_nsec);
+#else
   ASSERT_EQ(1, ts.tv_nsec);
+#endif
   ASSERT_EQ(0, ts.tv_sec);
 }
 
 TEST(time, clock_getres_CLOCK_MONOTONIC) {
   timespec ts;
   ASSERT_EQ(0, clock_getres(CLOCK_MONOTONIC, &ts));
+#if defined(__FreeBSD__)
+  ASSERT_EQ(TimecounterResolution(), ts.tv_nsec);
+#else
   ASSERT_EQ(1, ts.tv_nsec);
+#endif
   ASSERT_EQ(0, ts.tv_sec);
 }
 
@@ -1051,13 +1079,23 @@ TEST(time, clock_getres_CLOCK_THREAD_CPUTIME_ID) {
 TEST(time, clock_getres_CLOCK_BOOTTIME) {
   timespec ts;
   ASSERT_EQ(0, clock_getres(CLOCK_BOOTTIME, &ts));
+#if defined(__FreeBSD__)
+  ASSERT_EQ(TimecounterResolution(), ts.tv_nsec);
+#else
   ASSERT_EQ(1, ts.tv_nsec);
+#endif
   ASSERT_EQ(0, ts.tv_sec);
 }
 
 TEST(time, clock_getres_unknown) {
   timespec ts = { -1, -1 };
+#if defined(__FreeBSD__)
+  // FreeBSD takes a negative id as a CPU-time clock; its clock ids end at
+  // CLOCK_TAI (16).
+  ASSERT_ERRNO_FAILURE(EINVAL, -1, clock_getres(CLOCK_TAI + 1, &ts));
+#else
   ASSERT_ERRNO_FAILURE(EINVAL, -1, clock_getres(-1, &ts));
+#endif
   ASSERT_EQ(-1, ts.tv_nsec);
   ASSERT_EQ(-1, ts.tv_sec);
 }
@@ -1115,7 +1153,21 @@ TEST(time, clock_getcpuclockid_ESRCH) {
 
 TEST(time, clock_settime) {
   timespec ts;
+#if defined(__FreeBSD__)
+  // FreeBSD checks PRIV_CLOCK_SETTIME before the clock id.  A bad tv_nsec
+  // for CLOCK_REALTIME tells if we have it without setting the clock.
+  timespec bad_ts = { 0, -1 };
+  errno = 0;
+  ASSERT_EQ(-1, clock_settime(CLOCK_REALTIME, &bad_ts));
+  if (errno == EPERM) {
+    ASSERT_ERRNO_FAILURE(EPERM, -1, clock_settime(-1, &ts));
+  } else {
+    ASSERT_ERRNO(EINVAL);
+    ASSERT_ERRNO_FAILURE(EINVAL, -1, clock_settime(-1, &ts));
+  }
+#else
   ASSERT_ERRNO_FAILURE(EINVAL, -1, clock_settime(-1, &ts));
+#endif
 }
 
 TEST(time, clock_nanosleep_EINVAL) {
@@ -1378,7 +1430,11 @@ TEST(time, timespec_getres) {
 #if defined(__BIONIC__)
   timespec ts = {};
   ASSERT_EQ(TIME_UTC, timespec_getres(&ts, TIME_UTC));
+#if defined(__FreeBSD__)
+  ASSERT_EQ(TimecounterResolution(), ts.tv_nsec);
+#else
   ASSERT_EQ(1, ts.tv_nsec);
+#endif
   ASSERT_EQ(0, ts.tv_sec);
 #else
   GTEST_SKIP() << "glibc doesn't have timespec_get until 2.21";
