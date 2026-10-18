@@ -477,6 +477,9 @@ TEST(setjmp, setjmp_registers) {
 #if defined(__arm__)
 #define JB_SIGFLAG_OFFSET 0
 #define JB_CHECKSUM_OFFSET 31
+#elif defined(__aarch64__) && defined(__FreeBSD__)
+#define JB_SIGFLAG_OFFSET 0
+#define JB_CHECKSUM_OFFSET 25
 #elif defined(__aarch64__)
 #define JB_SIGFLAG_OFFSET 0
 #define JB_CHECKSUM_OFFSET 24
