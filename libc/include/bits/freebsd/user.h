@@ -28,10 +28,12 @@
 /*
  * struct kinfo_proc, the record of the kern.proc sysctl(3) names, from
  * FreeBSD sys/sys/user.h, sys/sys/priority.h and sys/sys/proc.h (the ki_stat
- * values).  abi_check.c checks the layout.
+ * values).  struct kinfo_vmentry is the record of kern.proc.vmmap, and
+ * struct kinfo_file is the record of fcntl(F_KINFO).  abi_check.c checks
+ * the layouts.
  *
  * bionic's <sys/user.h> is the Linux core file header, so <sys/sysctl.h>
- * gives this structure.  The kernel addresses keep their FreeBSD types:
+ * gives these structures.  The kernel addresses keep their FreeBSD types:
  * user space cannot use them.
  */
 
@@ -39,6 +41,7 @@
 
 #include <sys/cdefs.h>
 #include <sys/types.h>
+#include <limits.h>
 #include <stdint.h>
 #include <bits/freebsd/resource.h>
 #include <bits/freebsd/time.h>
@@ -168,3 +171,106 @@ struct kinfo_proc {
 	long		ki_sflag;
 	long		ki_tdflags;
 };
+
+/* kf_status flags. */
+#define	KF_ATTR_VALID	0x0001
+
+/*
+ * Of the kf_un union, only kf_file (a vnode) is here.  No other member is
+ * larger, so the size and the offsets do not change.
+ */
+struct kinfo_file {
+	int		kf_structsize;
+	int		kf_type;
+	int		kf_fd;
+	int		kf_ref_count;
+	int		kf_flags;
+	int		kf_pad0;
+	int64_t		kf_offset;
+	union {
+		struct {
+			int		kf_file_type;
+			int		kf_spareint[3];
+			uint64_t	kf_spareint64[29];
+			uint64_t	kf_file_nlink;
+			uint64_t	kf_file_fsid;
+			uint64_t	kf_file_rdev;
+			uint64_t	kf_file_fileid;
+			uint64_t	kf_file_size;
+			uint32_t	kf_file_fsid_freebsd11;
+			uint32_t	kf_file_rdev_freebsd11;
+			uint16_t	kf_file_mode;
+			uint16_t	kf_file_pad0;
+			uint32_t	kf_file_pad1;
+		} kf_file;
+	} kf_un;
+	uint16_t	kf_status;
+	uint16_t	kf_pad1;
+	int		_kf_ispare0;
+	uint64_t	kf_cap_rights[2];	/* cap_rights_t */
+	uint64_t	_kf_cap_spare;
+	char		kf_path[PATH_MAX];
+};
+
+#define	KVME_TYPE_NONE		0
+#define	KVME_TYPE_DEFAULT	1
+#define	KVME_TYPE_VNODE		2
+#define	KVME_TYPE_SWAP		3
+#define	KVME_TYPE_DEVICE	4
+#define	KVME_TYPE_PHYS		5
+#define	KVME_TYPE_DEAD		6
+#define	KVME_TYPE_SG		7
+#define	KVME_TYPE_MGTDEVICE	8
+#define	KVME_TYPE_GUARD		9
+#define	KVME_TYPE_UNKNOWN	255
+
+#define	KVME_PROT_READ		0x00000001
+#define	KVME_PROT_WRITE		0x00000002
+#define	KVME_PROT_EXEC		0x00000004
+#define	KVME_MAX_PROT_READ	0x00010000
+#define	KVME_MAX_PROT_WRITE	0x00020000
+#define	KVME_MAX_PROT_EXEC	0x00040000
+
+#define	KVME_FLAG_COW		0x00000001
+#define	KVME_FLAG_NEEDS_COPY	0x00000002
+#define	KVME_FLAG_NOCOREDUMP	0x00000004
+#define	KVME_FLAG_SUPER		0x00000008
+#define	KVME_FLAG_GROWS_UP	0x00000010
+#define	KVME_FLAG_GROWS_DOWN	0x00000020
+#define	KVME_FLAG_USER_WIRED	0x00000040
+#define	KVME_FLAG_SYSVSHM	0x00000080
+#define	KVME_FLAG_POSIXSHM	0x00000100
+
+/*
+ * kern.proc.vmmap packs the records: kve_structsize is the size of each
+ * one, which ends after the NUL of kve_path, rounded up to 8 bytes.
+ */
+struct kinfo_vmentry {
+	int		kve_structsize;
+	int		kve_type;
+	uint64_t	kve_start;
+	uint64_t	kve_end;
+	uint64_t	kve_offset;
+	uint64_t	kve_vn_fileid;
+	uint32_t	kve_vn_fsid_freebsd11;
+	int		kve_flags;
+	int		kve_resident;
+	int		kve_private_resident;
+	int		kve_protection;
+	int		kve_ref_count;
+	int		kve_shadow_count;
+	int		kve_vn_type;
+	uint64_t	kve_vn_size;
+	uint32_t	kve_vn_rdev_freebsd11;
+	uint16_t	kve_vn_mode;
+	uint16_t	kve_status;
+	union {
+		uint64_t	_kve_vn_fsid;
+		uint64_t	_kve_obj;
+	} kve_type_spec;
+	uint64_t	kve_vn_rdev;
+	int		_kve_ispare[8];
+	char		kve_path[PATH_MAX];
+};
+#define	kve_vn_fsid	kve_type_spec._kve_vn_fsid
+#define	kve_obj		kve_type_spec._kve_obj

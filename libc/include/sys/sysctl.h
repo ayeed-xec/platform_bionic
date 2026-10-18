@@ -42,6 +42,7 @@
 #define	CTL_KERN		1
 #define	KERN_PROC		14
 #define	KERN_PROC_PID		1
+#define	KERN_PROC_VMMAP		32
 #define	KERN_PROC_INC_THREAD	0x10
 
 __BEGIN_DECLS
