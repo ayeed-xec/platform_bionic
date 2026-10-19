@@ -26,41 +26,41 @@
  */
 
 /*
- * sched_getparam(2), sched_setparam(2), sched_getscheduler(2) and
- * sched_setscheduler(2) for bionic-freebsd.
+ * sched_getparam(2), sched_setparam(2), sched_getscheduler(2),
+ * sched_setscheduler(2) and sched_rr_get_interval(2) for bionic-freebsd.
  *
- * On Linux these calls take a thread id, and bionic's pthread functions
- * pass one.  The FreeBSD system calls take a process id and act on the
- * first thread of that process, so libc does the work with
- * rtprio_thread(2), which acts on one thread.  The policies and priority
+ * The FreeBSD system calls take a thread id, as on Linux, and
+ * sched_setscheduler(2) takes SCHED_RESET_ON_FORK.  Each function makes
+ * one system call.  A negative id gives EINVAL, as on Linux; FreeBSD gives
+ * ESRCH.
+ *
+ * Linux checks the policy and the priority before the privilege, FreeBSD
+ * after it, so sched_setscheduler() checks them first.  The priority
  * ranges are those of the FreeBSD system calls, so they agree with
- * sched_get_priority_min(2) and sched_get_priority_max(2).  The timeshare
- * scheduler computes the priority of a SCHED_OTHER thread itself, so the
- * priority of such a thread reads back as 0, as on Linux and in libthr.
+ * sched_get_priority_min(2) and sched_get_priority_max(2).
  *
- * FreeBSD thread ids start above PID_MAX.  An id that names no thread can
- * still be a process id, and the FreeBSD system call then handles it.
+ * The timeshare scheduler computes the priority of a thread that is not
+ * realtime itself, and sched_getparam(2) reports it above the realtime
+ * range.  Such a priority reads back as 0, as on Linux and in libthr.
  *
- * SCHED_IDLE is the idle class of rtprio(2) at its lowest priority.
+ * SCHED_IDLE is the idle class of rtprio_thread(2) at its lowest priority.
  * FreeBSD lets only root set it, unless security.bsd.unprivileged_idprio
- * is 1.  FreeBSD has no SCHED_BATCH, so it fails with EINVAL.
- *
- * FreeBSD has no SCHED_RESET_ON_FORK, so a policy with that flag fails
- * with EINVAL.
+ * is 1.  rtprio_thread(2) takes only a thread id or 0, and no
+ * SCHED_RESET_ON_FORK.  The kernel scheduler calls do not know the idle
+ * class: sched_getscheduler() reports SCHED_OTHER for such a thread, and
+ * sched_setparam() makes it SCHED_OTHER.  FreeBSD has no SCHED_BATCH, so
+ * it fails with EINVAL.
  */
 
 #include <sys/types.h>
 
 #include <errno.h>
 #include <sched.h>
+#include <time.h>
 
 /* FreeBSD <sys/rtprio.h> and <sys/priority.h> values. */
-#define	RTP_LOOKUP		0
 #define	RTP_SET			1
-#define	RTP_PRIO_REALTIME	2
-#define	RTP_PRIO_NORMAL		3
 #define	RTP_PRIO_IDLE		4
-#define	RTP_PRIO_FIFO		10
 #define	RTP_PRIO_MAX		31
 #define	PRI_MIN_TIMESHARE	56
 #define	PRI_MAX_TIMESHARE	223
@@ -73,54 +73,13 @@ struct rtprio {
 int	__rtprio_thread(int, pid_t, struct rtprio *);
 int	__sched_getparam(pid_t, struct sched_param *);
 int	__sched_getscheduler(pid_t);
+int	__sched_rr_get_interval(pid_t, struct timespec *);
 int	__sched_setparam(pid_t, const struct sched_param *);
 int	__sched_setscheduler(pid_t, int, const struct sched_param *);
 
 static int
-rtprio_policy(const struct rtprio *rtp, int *priority)
+einval(void)
 {
-	switch (rtp->type) {
-	case RTP_PRIO_FIFO:
-		*priority = RTP_PRIO_MAX - rtp->prio;
-		return (SCHED_FIFO);
-	case RTP_PRIO_REALTIME:
-		*priority = RTP_PRIO_MAX - rtp->prio;
-		return (SCHED_RR);
-	case RTP_PRIO_IDLE:
-		*priority = 0;
-		return (SCHED_IDLE);
-	default:
-		*priority = 0;
-		return (SCHED_OTHER);
-	}
-}
-
-static int
-policy_rtprio(int policy, int priority, struct rtprio *rtp)
-{
-	switch (policy) {
-	case SCHED_FIFO:
-	case SCHED_RR:
-		if (priority < 0 || priority > RTP_PRIO_MAX)
-			break;
-		rtp->type = policy == SCHED_FIFO ? RTP_PRIO_FIFO :
-		    RTP_PRIO_REALTIME;
-		rtp->prio = RTP_PRIO_MAX - priority;
-		return (0);
-	case SCHED_OTHER:
-		if (priority < 0 ||
-		    priority > PRI_MAX_TIMESHARE - PRI_MIN_TIMESHARE)
-			break;
-		rtp->type = RTP_PRIO_NORMAL;
-		rtp->prio = 0;
-		return (0);
-	case SCHED_IDLE:
-		if (priority != 0)
-			break;
-		rtp->type = RTP_PRIO_IDLE;
-		rtp->prio = RTP_PRIO_MAX;
-		return (0);
-	}
 	errno = EINVAL;
 	return (-1);
 }
@@ -128,30 +87,20 @@ policy_rtprio(int policy, int priority, struct rtprio *rtp)
 int
 sched_getscheduler(pid_t id)
 {
-	struct rtprio rtp;
-	int priority;
-
-	if (id < 0) {
-		errno = EINVAL;
-		return (-1);
-	}
-	if (__rtprio_thread(RTP_LOOKUP, id, &rtp) != 0)
-		return (errno == ESRCH ? __sched_getscheduler(id) : -1);
-	return (rtprio_policy(&rtp, &priority));
+	if (id < 0)
+		return (einval());
+	return (__sched_getscheduler(id));
 }
 
 int
 sched_getparam(pid_t id, struct sched_param *param)
 {
-	struct rtprio rtp;
-
-	if (id < 0) {
-		errno = EINVAL;
+	if (id < 0)
+		return (einval());
+	if (__sched_getparam(id, param) != 0)
 		return (-1);
-	}
-	if (__rtprio_thread(RTP_LOOKUP, id, &rtp) != 0)
-		return (errno == ESRCH ? __sched_getparam(id, param) : -1);
-	rtprio_policy(&rtp, &param->sched_priority);
+	if (param->sched_priority > RTP_PRIO_MAX)
+		param->sched_priority = 0;
 	return (0);
 }
 
@@ -159,33 +108,44 @@ int
 sched_setscheduler(pid_t id, int policy, const struct sched_param *param)
 {
 	struct rtprio rtp;
+	int max;
 
-	if (id < 0) {
-		errno = EINVAL;
-		return (-1);
+	if (id < 0)
+		return (einval());
+	switch (policy & ~SCHED_RESET_ON_FORK) {
+	case SCHED_FIFO:
+	case SCHED_RR:
+		max = RTP_PRIO_MAX;
+		break;
+	case SCHED_OTHER:
+		max = PRI_MAX_TIMESHARE - PRI_MIN_TIMESHARE;
+		break;
+	case SCHED_IDLE:
+		if (policy != SCHED_IDLE || param->sched_priority != 0)
+			return (einval());
+		rtp.type = RTP_PRIO_IDLE;
+		rtp.prio = RTP_PRIO_MAX;
+		return (__rtprio_thread(RTP_SET, id, &rtp));
+	default:
+		return (einval());
 	}
-	if (policy_rtprio(policy, param->sched_priority, &rtp) != 0)
-		return (-1);
-	if (__rtprio_thread(RTP_SET, id, &rtp) != 0)
-		return (errno == ESRCH ?
-		    __sched_setscheduler(id, policy, param) : -1);
-	return (0);
+	if (param->sched_priority < 0 || param->sched_priority > max)
+		return (einval());
+	return (__sched_setscheduler(id, policy, param));
 }
 
 int
 sched_setparam(pid_t id, const struct sched_param *param)
 {
-	struct rtprio rtp;
-	int policy, priority;
+	if (id < 0)
+		return (einval());
+	return (__sched_setparam(id, param));
+}
 
-	if (id < 0) {
-		errno = EINVAL;
-		return (-1);
-	}
-	if (__rtprio_thread(RTP_LOOKUP, id, &rtp) != 0)
-		return (errno == ESRCH ? __sched_setparam(id, param) : -1);
-	policy = rtprio_policy(&rtp, &priority);
-	if (policy_rtprio(policy, param->sched_priority, &rtp) != 0)
-		return (-1);
-	return (__rtprio_thread(RTP_SET, id, &rtp));
+int
+sched_rr_get_interval(pid_t id, struct timespec *interval)
+{
+	if (id < 0)
+		return (einval());
+	return (__sched_rr_get_interval(id, interval));
 }

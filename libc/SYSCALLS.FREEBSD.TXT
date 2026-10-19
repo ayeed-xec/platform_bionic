@@ -168,6 +168,7 @@ __sched_getscheduler:sched_getscheduler(pid_t)      arm64  E  sched_getscheduler
 __sched_getparam:sched_getparam(pid_t, struct sched_param*)  arm64  E  sched_getparam
 __sched_setparam:sched_setparam(pid_t, const struct sched_param*)  arm64  E  sched_setparam
 __sched_setscheduler:sched_setscheduler(pid_t, int, const struct sched_param*)  arm64  E  sched_setscheduler
+__sched_rr_get_interval:sched_rr_get_interval(pid_t, struct timespec*)  arm64  E  sched_rr_get_interval
 sched_get_priority_max(int)                         arm64  E  sched_get_priority_max
 sched_get_priority_min(int)                         arm64  E  sched_get_priority_min
 

@@ -32,9 +32,8 @@
  * sys/sys/sched.h.  FreeBSD has no SCHED_DEADLINE and no SCHED_BATCH:
  * sched_setscheduler(2) fails with EINVAL for SCHED_BATCH.  SCHED_IDLE is
  * the idle class of rtprio(2) in libc; the kernel does not know its value.
- * SCHED_RESET_ON_FORK has the Android value; the FreeBSD
- * kernel does not know it, and sched_setscheduler(2) fails with EINVAL if
- * a policy has it.
+ * SCHED_RESET_ON_FORK has the FreeBSD value, which is also the Android
+ * value.
  *
  * FreeBSD has no clone(2): libc interprets the CLONE_* flags, so they have
  * the Android values (ADR 0002, decision 1.3).
