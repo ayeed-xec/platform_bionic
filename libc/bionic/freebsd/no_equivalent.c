@@ -35,8 +35,6 @@
  * klogctl		The kern.msgbuf sysctl reads the whole kernel message
  *			buffer, but FreeBSD has no read that consumes it and no
  *			count of unread bytes.  ENOSYS.
- * mremap		FreeBSD cannot move a mapping or grow it in place, and
- *			a copy would break shared mappings.  ENOSYS.
  * mseal		Nothing stops later mprotect(2) or munmap(2) calls on a
  *			range.  ENOSYS, which callers take as an older kernel.
  */
@@ -47,7 +45,6 @@
 
 int	brk(void *);
 void	*sbrk(intptr_t);
-void	*mremap(void *, size_t, size_t, int, ...);
 int	mseal(void *, size_t, unsigned long);
 int	klogctl(int, char *, int);
 
@@ -64,17 +61,6 @@ sbrk(intptr_t increment)
 {
 	(void)increment;
 	errno = ENOMEM;
-	return ((void *)-1);
-}
-
-void *
-mremap(void *old_address, size_t old_size, size_t new_size, int flags, ...)
-{
-	(void)old_address;
-	(void)old_size;
-	(void)new_size;
-	(void)flags;
-	errno = ENOSYS;
 	return ((void *)-1);
 }
 

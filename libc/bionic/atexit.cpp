@@ -192,19 +192,9 @@ bool AtexitArray::expand_capacity() {
     new_pages = mmap(nullptr, new_capacity_bytes, PROT_READ | PROT_WRITE,
                      MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
   } else {
-#if defined(__FreeBSD__)
-    // FreeBSD has no mremap(2): copy the array to a new mapping.
-    new_pages = mmap(nullptr, new_capacity_bytes, PROT_READ | PROT_WRITE,
-                     MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    if (new_pages != MAP_FAILED) {
-      memcpy(new_pages, array_, page_end_of_index(capacity_));
-      munmap(array_, page_end_of_index(capacity_));
-    }
-#else
     // mremap fails if the source buffer crosses a boundary between two VMAs. When a single array
     // element is modified, the kernel should split then rejoin the buffer's VMA.
     new_pages = mremap(array_, page_end_of_index(capacity_), new_capacity_bytes, MREMAP_MAYMOVE);
-#endif
   }
   if (new_pages == MAP_FAILED) {
     async_safe_format_log(ANDROID_LOG_WARN, "libc",

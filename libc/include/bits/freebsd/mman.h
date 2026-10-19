@@ -28,9 +28,10 @@
 /*
  * mmap(2) values.  The kernel reads PROT_*, MAP_*, MS_*, MCL_*, MFD_* and
  * the minherit(2) INHERIT_* values, so they have the values of FreeBSD
- * sys/sys/mman.h; abi_check.c checks them.  libc translates MADV_*,
- * MREMAP_* and MLOCK_* (ADR 0002 decision 1.3), so they keep the Android
- * values.
+ * sys/sys/mman.h; abi_check.c checks them.  libc translates MADV_* and
+ * MLOCK_* (ADR 0002 decision 1.3), so they keep the Android values.  The
+ * kernel reads MREMAP_*, which have the FreeBSD values of mremap(2); they
+ * are also the Android values.
  */
 
 #pragma once
@@ -122,5 +123,6 @@
 
 #define	MREMAP_MAYMOVE		1
 #define	MREMAP_FIXED		2
+#define	MREMAP_DONTUNMAP	4
 
 #define	MLOCK_ONFAULT		0x01
