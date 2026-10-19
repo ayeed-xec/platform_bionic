@@ -42,13 +42,8 @@ int __openat_real(int, const char* _Nonnull, int, ...) __RENAME(openat);
 #define __open_too_many_args_error "too many arguments"
 #define __open_too_few_args_error "called with O_CREAT or O_TMPFILE, but missing mode"
 #define __open_useless_modes_warning "has superfluous mode bits; missing O_CREAT or O_TMPFILE?"
-#if defined(O_TMPFILE)
-/* O_TMPFILE shares bits with O_DIRECTORY. */
+/* On Linux, O_TMPFILE includes O_DIRECTORY; FreeBSD uses a separate bit. */
 #define __open_modes_useful(flags) (((flags) & O_CREAT) || ((flags) & O_TMPFILE) == O_TMPFILE)
-#else
-/* FreeBSD has no O_TMPFILE. */
-#define __open_modes_useful(flags) ((flags) & O_CREAT)
-#endif
 
 __BIONIC_ERROR_FUNCTION_VISIBILITY
 int open(const char* _Nonnull pathname, int flags, mode_t modes, ...) __overloadable

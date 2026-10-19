@@ -91,14 +91,9 @@ const char* __get_TMPDIR() {
 
 FILE* tmpfile() {
   const char* tmpdir = __get_TMPDIR();
-#if defined(O_TMPFILE)
   int fd = open(tmpdir, O_TMPFILE | O_RDWR, S_IRUSR | S_IWUSR);
   if (fd == -1) return __tmpfile_dir_legacy(tmpdir);
   return __fd_to_fp(fd);
-#else
-  // FreeBSD has no O_TMPFILE.
-  return __tmpfile_dir_legacy(tmpdir);
-#endif
 }
 __strong_alias(tmpfile64, tmpfile);
 

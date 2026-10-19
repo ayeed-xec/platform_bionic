@@ -59,6 +59,7 @@
 #define	O_RESOLVE_BENEATH	0x00800000
 #define	O_DSYNC			0x01000000
 #define	O_EMPTY_PATH		0x02000000
+#define	O_TMPFILE		0x10000000
 /* Linux names with no FreeBSD flag: the FreeBSD kernel needs none. */
 #define	O_LARGEFILE		0
 #define	O_NOATIME		0
