@@ -30,9 +30,7 @@
 
 #include <stddef.h>
 
-#if !defined(__FreeBSD__)
 #include "gwp_asan/options.h"
-#endif
 #include "platform/bionic/malloc.h"
 #include "private/bionic_globals.h"
 #include "private/bionic_malloc_dispatch.h"
