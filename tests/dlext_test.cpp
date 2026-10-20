@@ -939,9 +939,6 @@ TEST(dlext, ns_smoke) {
 }
 
 TEST(dlext, dlopen_ext_use_o_tmpfile_fd) {
-#if defined(__FreeBSD__)
-  GTEST_SKIP() << "bionic-freebsd: FreeBSD has no O_TMPFILE";
-#else
   const std::string lib_path = GetTestLibRoot() + "/libtest_simple.so";
 
   int tmpfd = TEMP_FAILURE_RETRY(
@@ -983,7 +980,6 @@ TEST(dlext, dlopen_ext_use_o_tmpfile_fd) {
   ASSERT_DL_NOTNULL(taxicab_number);
   EXPECT_EQ(1729U, *taxicab_number);
   dlclose(handle);
-#endif
 }
 
 TEST(dlext, dlopen_ext_use_memfd) {
