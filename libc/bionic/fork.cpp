@@ -35,22 +35,18 @@
 #include "pthread_internal.h"
 
 #if defined(__FreeBSD__)
-extern "C" int __freebsd_fork();
-extern "C" int __thr_self(long* tid);
-extern "C" pid_t __getpid();
+#include "private/freebsd_fork.h"
 #endif
 
 __BIONIC_WEAK_FOR_NATIVE_BRIDGE_INLINE
 int __clone_for_fork() {
   pthread_internal_t* self = __get_thread();
 #if defined(__FreeBSD__)
-  // fork(2) gives the child's thread a new id, so refresh the cached tid and pid.
-  int result = __freebsd_fork();
+  rfork_ids ids;
+  int result = __freebsd_rfork_ids(FREEBSD_RFFDG | FREEBSD_RFPROC, &ids);
   if (result == 0) {
-    long tid;
-    __thr_self(&tid);
-    self->tid = static_cast<pid_t>(tid);
-    self->set_cached_pid(__getpid());
+    self->tid = ids.ri_tid;
+    self->set_cached_pid(ids.ri_pid);
     __main_thread = self;
   }
   return result;

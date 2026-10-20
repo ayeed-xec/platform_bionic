@@ -41,37 +41,29 @@
 #include "private/bionic_defs.h"
 
 #if defined(__FreeBSD__)
-// FreeBSD makes a new process with rfork(2), and a new thread only with
-// thr_new(2) (pthread_create()). Each form of clone() that makes a process is
-// one rfork(2) or vfork(2) call.
+#include "private/freebsd_fork.h"
+
+// FreeBSD makes a new process with rfork_ids(2), rfork(2), or vfork(2),
+// and a new thread only with thr_new(2) (pthread_create()). Each process
+// form of clone() uses one native call.
 
 // FreeBSD <sys/unistd.h> rfork(2) flags.
-#define FREEBSD_RFFDG (1 << 2)
-#define FREEBSD_RFPROC (1 << 4)
 #define FREEBSD_RFMEM (1 << 5)
 #define FREEBSD_RFSIGSHARE (1 << 14)
 #define FREEBSD_RFTSIGZMB (1 << 19)
 #define FREEBSD_RFTSIGSHIFT 20
 
-extern "C" pid_t __freebsd_rfork(int flags);
 extern "C" pid_t __freebsd_clone(int flags, void* child_stack, int (*fn)(void*), void* arg,
-                                 int use_vfork);
-extern "C" int __thr_self(long* tid);
-extern "C" pid_t __getpid();
-
-static pid_t __freebsd_gettid() {
-  long tid;
-  __thr_self(&tid);
-  return static_cast<pid_t>(tid);
-}
+                                 int use_vfork, rfork_ids* ids, int* child_tid);
 
 // The rfork(2) flags for the clone() flags, or -1 for a form that FreeBSD
 // cannot make with one call: threads (CLONE_THREAD, CLONE_SETTLS), the stores
-// of the new thread id (CLONE_PARENT_SETTID, CLONE_CHILD_SETTID), name spaces,
+// of the id in the parent (CLONE_PARENT_SETTID), name spaces,
 // and the clear of a thread id at the exit of a child that shares memory.
 static int clone_rfork_flags(int flags, bool has_fn, bool* use_vfork) {
   static constexpr int kAllowed = CSIGNAL | CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND |
-                                  CLONE_VFORK | CLONE_CHILD_CLEARTID | CLONE_DETACHED;
+                                  CLONE_VFORK | CLONE_CHILD_CLEARTID | CLONE_CHILD_SETTID |
+                                  CLONE_DETACHED;
   if ((flags & ~kAllowed) != 0) return -1;
 
   *use_vfork = false;
@@ -85,7 +77,7 @@ static int clone_rfork_flags(int flags, bool has_fn, bool* use_vfork) {
 
   int rfflags = FREEBSD_RFPROC;
   if ((flags & CLONE_VM) != 0) {
-    if (!has_fn || (flags & CLONE_CHILD_CLEARTID) != 0) return -1;
+    if (!has_fn || (flags & (CLONE_CHILD_CLEARTID | CLONE_CHILD_SETTID)) != 0) return -1;
     rfflags |= FREEBSD_RFMEM;
   }
   if ((flags & CLONE_SIGHAND) != 0) {
@@ -112,18 +104,27 @@ extern "C" __noreturn void __exit(int status);
 
 // Called from the __bionic_clone assembler to call the thread function then exit.
 __attribute__((no_sanitize("hwaddress")))
-extern "C" __LIBC_HIDDEN__ void __start_thread(int (*fn)(void*), void* arg) {
+extern "C" __LIBC_HIDDEN__ void __start_thread(int (*fn)(void*), void* arg
+#if defined(__FreeBSD__)
+                                             , const rfork_ids* ids, int* child_tid
+#endif
+                                             ) {
   BIONIC_STOP_UNWIND;
 
   pthread_internal_t* self = __get_thread();
   if (self && self->tid == -1) {
 #if defined(__FreeBSD__)
-    self->tid = __freebsd_gettid();
+    self->tid = ids->ri_tid;
+    self->set_cached_pid(ids->ri_pid);
+    __main_thread = self;
 #else
     self->tid = syscall(__NR_gettid);
 #endif
   }
 
+#if defined(__FreeBSD__)
+  if (child_tid != nullptr) *child_tid = ids->ri_tid;
+#endif
   int status = (*fn)(arg);
 #if defined(__FreeBSD__)
   // The child is a process with one thread.
@@ -166,7 +167,11 @@ static inline clone_id_info clone_prologue(int flags) {
   return {self, parent_pid, caller_tid};
 }
 
-static inline int clone_epilogue(clone_id_info& ciinfo, int clone_result) {
+static inline int clone_epilogue(clone_id_info& ciinfo, int clone_result
+#if defined(__FreeBSD__)
+                                 , const rfork_ids& ids
+#endif
+                                 ) {
   if (clone_result != 0) {
     // We're the parent, so put our known pid and tid back in place.
     // We leave the child without a cached pid and tid, but:
@@ -179,9 +184,9 @@ static inline int clone_epilogue(clone_id_info& ciinfo, int clone_result) {
     ciinfo.self->set_cached_pid(ciinfo.parent_pid);
   } else if (ciinfo.self->tid == -1) {
 #if defined(__FreeBSD__)
-    // A FreeBSD thread id is never the pid, so ask for both, as fork() does.
-    ciinfo.self->tid = __freebsd_gettid();
-    ciinfo.self->set_cached_pid(__getpid());
+    ciinfo.self->tid = ids.ri_tid;
+    ciinfo.self->set_cached_pid(ids.ri_pid);
+    __main_thread = ciinfo.self;
 #else
     ciinfo.self->tid = syscall(__NR_gettid);
     ciinfo.self->set_cached_pid(ciinfo.self->tid);
@@ -224,7 +229,6 @@ int clone(int (*fn)(void*), void* child_stack, int flags, void* arg, ...) {
 #if defined(__FreeBSD__)
   (void)parent_tid;
   (void)new_tls;
-  (void)child_tid;
   bool use_vfork;
   int rfflags = clone_rfork_flags(flags, fn != nullptr, &use_vfork);
   if (rfflags == -1) {
@@ -234,18 +238,23 @@ int clone(int (*fn)(void*), void* child_stack, int flags, void* arg, ...) {
 #endif
 
   clone_id_info ciinfo = clone_prologue(flags);
+#if defined(__FreeBSD__)
+  rfork_ids ids;
+  int* store_tid = (flags & CLONE_CHILD_SETTID) != 0 ? child_tid : nullptr;
+#endif
 
   // Actually do the clone.
   int clone_result;
   if (fn != nullptr) {
 #if defined(__FreeBSD__)
-    clone_result = __freebsd_clone(rfflags, child_stack, fn, arg, use_vfork);
+    clone_result = __freebsd_clone(rfflags, child_stack, fn, arg, use_vfork,
+                                  (flags & CLONE_VM) != 0 ? nullptr : &ids, store_tid);
 #else
     clone_result = __bionic_clone(flags, child_stack, parent_tid, new_tls, child_tid, fn, arg);
 #endif
   } else {
 #if defined(__FreeBSD__)
-    clone_result = __freebsd_rfork(rfflags);
+    clone_result = __freebsd_rfork_ids(rfflags, &ids);
 #elif defined(__x86_64__) // sys_clone's last two arguments are flipped on x86-64.
     clone_result = syscall(__NR_clone, flags, child_stack, parent_tid, child_tid, new_tls);
 #else
@@ -253,7 +262,13 @@ int clone(int (*fn)(void*), void* child_stack, int flags, void* arg, ...) {
 #endif
   }
 
+#if defined(__FreeBSD__)
+  clone_result = clone_epilogue(ciinfo, clone_result, ids);
+  if (clone_result == 0 && store_tid != nullptr) *store_tid = ids.ri_tid;
+  return clone_result;
+#else
   return clone_epilogue(ciinfo, clone_result);
+#endif
 }
 
 __BIONIC_WEAK_FOR_NATIVE_BRIDGE

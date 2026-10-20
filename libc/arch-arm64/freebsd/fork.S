@@ -26,62 +26,53 @@
  */
 
 /*
- * Raw fork(2) for __clone_for_fork().  On arm64 the child comes back with
+ * rfork_ids(2) and process clone stubs.  On arm64 the child comes back with
  * x0 and x1 both 0.  Mask x0 with x1 - 1 as FreeBSD's own stub does, so the
  * child sees 0 even if the kernel puts 1 in x1.
  */
 
 #include <private/bionic_asm.h>
 
-ENTRY_PRIVATE(__freebsd_fork)
-	mov	x8, SYS_fork
+ENTRY_PRIVATE(__freebsd_rfork_ids)
+	mov	x8, SYS_rfork_ids
 	svc	#0
 	b.cs	__set_errno_from_freebsd
 	sub	x1, x1, #1
 	and	x0, x0, x1
 	ret
-END(__freebsd_fork)
-
-/*
- * pid_t __freebsd_rfork(int flags)
- *
- * rfork(2) for a clone() that returns in the child as fork() does.
- */
-ENTRY_PRIVATE(__freebsd_rfork)
-	mov	x8, SYS_rfork
-	svc	#0
-	b.cs	__set_errno_from_freebsd
-	sub	x1, x1, #1
-	and	x0, x0, x1
-	ret
-END(__freebsd_rfork)
+END(__freebsd_rfork_ids)
 
 /*
  * pid_t __freebsd_clone(int flags, void *child_stack, int (*fn)(void *),
- *     void *arg, int use_vfork)
+ *     void *arg, int use_vfork, struct rfork_ids *ids, int *child_tid)
  *
- * rfork(2), or vfork(2) when use_vfork is not 0, for a clone() with a
+ * rfork_ids(2), rfork(2), or vfork(2), for a clone() with a
  * function.  The kernel gives the child the registers of the parent from
  * x2 up, so the child moves to its stack before it touches memory, and then
- * calls __start_thread(fn, arg), which does not return.
+ * calls __start_thread(fn, arg, ids, child_tid), which does not return.
  */
 ENTRY_PRIVATE(__freebsd_clone)
 	mov	x9, x1
 	mov	x8, SYS_rfork
-	cbz	x4, 1f
+	cbz	x5, 1f
+	mov	x8, SYS_rfork_ids
+	mov	x1, x5
+1:	cbz	x4, 2f
 	mov	x8, SYS_vfork
-1:	svc	#0
+2:	svc	#0
 	b.cs	__set_errno_from_freebsd
 	sub	x1, x1, #1
 	and	x0, x0, x1
-	cbz	x0, 2f
+	cbz	x0, 3f
 	ret
-2:	mov	sp, x9
+3:	mov	sp, x9
 	/* The end of the frame record chain; the unwinder stops here. */
 	mov	fp, #0
 	mov	lr, #0
 	mov	x0, x2
 	mov	x1, x3
+	mov	x2, x5
+	mov	x3, x6
 	b	__start_thread
 END(__freebsd_clone)
 
