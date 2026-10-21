@@ -30,20 +30,48 @@
 
 #include <errno.h>
 #include <ifaddrs.h>
+#if !defined(__FreeBSD__)
 #include <linux/if_packet.h>
+#endif
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
+#if !defined(__FreeBSD__)
 #include <linux/sockios.h>
+#endif
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
+#if defined(__FreeBSD__)
+#include <sys/sysctl.h>
+#endif
 #include <unistd.h>
 
 #include "private/ScopedFd.h"
+#if defined(__FreeBSD__)
+#include "private/freebsd_if_mib.h"
+#endif
 
 #include "bionic_netlink.h"
 
+#if defined(__FreeBSD__)
+// FreeBSD has no SIOCGIFNAME. The interface MIB gives the name of an index
+// in one sysctl, in the vnet of the caller.
+char* if_indextoname(unsigned ifindex, char* ifname) {
+  int mib[] = {CTL_NET, PF_LINK, FREEBSD_NETLINK_GENERIC, FREEBSD_IFMIB_IFDATA,
+               static_cast<int>(ifindex), FREEBSD_IFDATA_GENERAL};
+  freebsd_ifmibdata ifmd;
+  size_t size = sizeof(ifmd);
+  if (sysctl(mib, sizeof(mib) / sizeof(mib[0]), &ifmd, &size, nullptr, 0) == -1) {
+    // Linux reports an unknown index as ENODEV.
+    if (errno == ENOENT) errno = ENODEV;
+    return nullptr;
+  }
+
+  strlcpy(ifname, ifmd.ifmd_name, IF_NAMESIZE);
+  return ifname;
+}
+#else
 char* if_indextoname(unsigned ifindex, char* ifname) {
   ScopedFd s(socket(AF_INET, SOCK_DGRAM|SOCK_CLOEXEC, 0));
   if (s.get() == -1) return nullptr;
@@ -54,6 +82,7 @@ char* if_indextoname(unsigned ifindex, char* ifname) {
   strcpy(ifname, ifr.ifr_name);
   return ifname;
 }
+#endif
 
 unsigned if_nametoindex(const char* ifname) {
   ifreq ifr = {};
@@ -67,7 +96,16 @@ unsigned if_nametoindex(const char* ifname) {
   ScopedFd s(socket(AF_INET, SOCK_DGRAM|SOCK_CLOEXEC, 0));
   if (s.get() == -1) return 0;
 
+#if defined(__FreeBSD__)
+  if (ioctl(s.get(), SIOCGIFINDEX, &ifr) == -1) {
+    // Linux reports an unknown interface as ENODEV, FreeBSD as ENXIO.
+    if (errno == ENXIO) errno = ENODEV;
+    return 0;
+  }
+  return static_cast<unsigned short>(ifr.ifr_index);
+#else
   return (ioctl(s.get(), SIOCGIFINDEX, &ifr) == -1) ? 0 : ifr.ifr_ifindex;
+#endif
 }
 
 struct if_list {

@@ -40,6 +40,7 @@
 #include <bits/freebsd/user.h>
 
 #define	CTL_KERN		1
+#define	CTL_NET			4
 #define	KERN_PROC		14
 #define	KERN_PROC_PID		1
 #define	KERN_PROC_VMMAP		32

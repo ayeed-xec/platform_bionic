@@ -385,7 +385,11 @@ static int
 _have_ipv4(unsigned mark, uid_t uid) {
 	static const struct sockaddr_in sin_test = {
 		.sin_family = AF_INET,
+#if defined(__FreeBSD__)
+		.sin_addr.s_addr = htonl(0x08080808L)  // 8.8.8.8
+#else
 		.sin_addr.s_addr = __constant_htonl(0x08080808L)  // 8.8.8.8
+#endif
 	};
 	sockaddr_union addr = { .in = sin_test };
 	return _find_src_addr(&addr.generic, NULL, mark, uid) == 1;
@@ -1810,10 +1814,12 @@ _find_src_addr(const struct sockaddr *addr, struct sockaddr *src_addr, unsigned 
 			return -1;
 		}
 	}
+#if defined(SO_MARK)
 	if (mark != MARK_UNSET && setsockopt(sock, SOL_SOCKET, SO_MARK, &mark, sizeof(mark)) < 0) {
 		close(sock);
 		return 0;
 	}
+#endif
 	if (uid > 0 && uid != NET_CONTEXT_INVALID_UID && fchown(sock, uid, (gid_t)-1) < 0) {
 		close(sock);
 		return 0;

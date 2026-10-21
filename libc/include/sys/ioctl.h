@@ -35,6 +35,7 @@
 
 #include <sys/cdefs.h>
 #include <bits/freebsd/ioccom.h>
+#include <bits/freebsd/sockio.h>
 #include <bits/freebsd/ttycom.h>
 /*
  * NetBSD and glibc's <sys/ioctl.h> provide some of the

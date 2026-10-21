@@ -31,13 +31,24 @@
 #include <async_safe/log.h>
 #include <cutils/misc.h>           // FIRST_APPLICATION_UID
 #include <errno.h>
+#if !defined(__FreeBSD__)
 #include <linux/if_packet.h>
+#endif
 #include <net/if.h>
+#if defined(__FreeBSD__)
+#include <net/if_dl.h>
+#endif
 #include <netinet/in.h>
+#if defined(__FreeBSD__)
+#include <stddef.h>
+#endif
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#if defined(__FreeBSD__)
+#include <sys/ioctl.h>
+#endif
 #include <unistd.h>
 
 #include "private/ErrnoRestorer.h"
@@ -116,12 +127,35 @@ struct ifaddrs_storage {
     ifa.ifa_netmask = reinterpret_cast<sockaddr*>(&netmask);
   }
 
+#if defined(__FreeBSD__)
+  // FreeBSD has no AF_PACKET. Its link-level address is an AF_LINK
+  // sockaddr_dl, with the name and then the address bytes in sdl_data, as
+  // FreeBSD's own getifaddrs(3) gives it. Each link gets one, also a link
+  // with no address, such as the loopback.
+  void SetLinkAddress(unsigned char type, const void* data, size_t byteCount) {
+    size_t name_length = strlen(name);
+    size_t length = offsetof(sockaddr_dl, sdl_data) + name_length + byteCount;
+    if (length > sizeof(addr)) return;
+
+    sockaddr_dl* sdl = reinterpret_cast<sockaddr_dl*>(&addr);
+    sdl->sdl_len = (length < sizeof(sockaddr_dl)) ? sizeof(sockaddr_dl) : length;
+    sdl->sdl_family = AF_LINK;
+    sdl->sdl_index = interface_index;
+    sdl->sdl_type = type;
+    sdl->sdl_nlen = name_length;
+    sdl->sdl_alen = byteCount;
+    memcpy(sdl->sdl_data, name, name_length);
+    if (byteCount != 0) memcpy(LLADDR(sdl), data, byteCount);
+    ifa.ifa_addr = reinterpret_cast<sockaddr*>(sdl);
+  }
+#else
   void SetPacketAttributes(int ifindex, unsigned short hatype, unsigned char halen) {
     sockaddr_ll* sll = reinterpret_cast<sockaddr_ll*>(&addr);
     sll->sll_ifindex = ifindex;
     sll->sll_hatype = hatype;
     sll->sll_halen = halen;
   }
+#endif
 
  private:
   sockaddr* CopyAddress(int family, const void* data, size_t byteCount, sockaddr_storage* ss) {
@@ -149,9 +183,11 @@ struct ifaddrs_storage {
     } else if (family == AF_INET6) {
       sockaddr_in6* ss6 = reinterpret_cast<sockaddr_in6*>(ss);
       return reinterpret_cast<uint8_t*>(&ss6->sin6_addr);
+#if !defined(__FreeBSD__)
     } else if (family == AF_PACKET) {
       sockaddr_ll* sll = reinterpret_cast<sockaddr_ll*>(ss);
       return reinterpret_cast<uint8_t*>(&sll->sll_addr);
+#endif
     }
     return nullptr;
   }
@@ -169,19 +205,30 @@ static void __getifaddrs_callback(void* context, nlmsghdr* hdr) {
     new_addr->ifa.ifa_flags = ifi->ifi_flags;
 
     // Go through the various bits of information and find the name.
+#if defined(__FreeBSD__)
+    rtattr* link_address = nullptr;
+#endif
     rtattr* rta = IFLA_RTA(ifi);
     size_t rta_len = IFLA_PAYLOAD(hdr);
     while (RTA_OK(rta, rta_len)) {
       if (rta->rta_type == IFLA_ADDRESS) {
+#if defined(__FreeBSD__)
+          link_address = rta;
+#else
           if (RTA_PAYLOAD(rta) < sizeof(new_addr->addr)) {
             new_addr->SetAddress(AF_PACKET, RTA_DATA(rta), RTA_PAYLOAD(rta));
             new_addr->SetPacketAttributes(ifi->ifi_index, ifi->ifi_type, RTA_PAYLOAD(rta));
           }
+#endif
       } else if (rta->rta_type == IFLA_BROADCAST) {
+#if defined(__FreeBSD__)
+          // FreeBSD's AF_LINK entries have no broadcast address.
+#else
           if (RTA_PAYLOAD(rta) < sizeof(new_addr->ifa_ifu)) {
             new_addr->SetBroadcastAddress(AF_PACKET, RTA_DATA(rta), RTA_PAYLOAD(rta));
             new_addr->SetPacketAttributes(ifi->ifi_index, ifi->ifi_type, RTA_PAYLOAD(rta));
           }
+#endif
       } else if (rta->rta_type == IFLA_IFNAME) {
           if (RTA_PAYLOAD(rta) < sizeof(new_addr->name)) {
             memcpy(new_addr->name, RTA_DATA(rta), RTA_PAYLOAD(rta));
@@ -190,6 +237,14 @@ static void __getifaddrs_callback(void* context, nlmsghdr* hdr) {
       }
       rta = RTA_NEXT(rta, rta_len);
     }
+#if defined(__FreeBSD__)
+    // sockaddr_dl holds the name too, so make it after all the attributes.
+    if (link_address != nullptr) {
+      new_addr->SetLinkAddress(ifi->ifi_type, RTA_DATA(link_address), RTA_PAYLOAD(link_address));
+    } else {
+      new_addr->SetLinkAddress(ifi->ifi_type, nullptr, 0);
+    }
+#endif
   } else if (hdr->nlmsg_type == RTM_NEWADDR) {
     ifaddrmsg* msg = reinterpret_cast<ifaddrmsg*>(NLMSG_DATA(hdr));
 
@@ -288,7 +343,14 @@ static void get_interface_flags_via_ioctl(ifaddrs** list) {
     ifreq ifr = {};
     strlcpy(ifr.ifr_name, addr->ifa.ifa_name, sizeof(ifr.ifr_name));
     if (ioctl(s.get(), SIOCGIFFLAGS, &ifr) != -1) {
+#if defined(__FreeBSD__)
+      // FreeBSD splits the flags into two shorts, and IFF_MULTICAST is the
+      // sign bit of the low one.
+      addr->ifa.ifa_flags = static_cast<uint16_t>(ifr.ifr_flags) |
+                            static_cast<uint32_t>(static_cast<uint16_t>(ifr.ifr_flagshigh)) << 16;
+#else
       addr->ifa.ifa_flags = ifr.ifr_flags;
+#endif
     } else {
       async_safe_format_log(ANDROID_LOG_ERROR, "libc",
                             "ioctl(SIOCGIFFLAGS) for \"%s\" failed in ifaddrs: %m",

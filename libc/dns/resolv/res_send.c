@@ -784,13 +784,24 @@ send_vc(res_state statp, struct __res_params* params,
 	if (statp->_vcsock >= 0 && (statp->_flags & RES_F_VC) != 0) {
 		struct sockaddr_storage peer;
 		socklen_t size = sizeof peer;
+#if defined(SO_MARK)
 		unsigned old_mark;
 		socklen_t mark_size = sizeof(old_mark);
+#else
+		/*
+		 * bionic-freebsd has no SO_MARK: the netd port decides how a
+		 * FreeBSD socket is tagged for a network.
+		 */
+#endif
 		if (getpeername(statp->_vcsock,
 				(struct sockaddr *)(void *)&peer, &size) < 0 ||
+#if defined(SO_MARK)
 		    !sock_eq((struct sockaddr *)(void *)&peer, nsap) ||
 			getsockopt(statp->_vcsock, SOL_SOCKET, SO_MARK, &old_mark, &mark_size) < 0 ||
 			old_mark != statp->_mark) {
+#else
+		    !sock_eq((struct sockaddr *)(void *)&peer, nsap)) {
+#endif
 			res_nclose(statp);
 			statp->_flags &= ~RES_F_VC;
 		}
@@ -817,6 +828,7 @@ send_vc(res_state statp, struct __res_params* params,
 			}
 		}
 		fchown(statp->_vcsock, AID_DNS, -1);
+#if defined(SO_MARK)
 		if (statp->_mark != MARK_UNSET) {
 			if (setsockopt(statp->_vcsock, SOL_SOCKET,
 				    SO_MARK, &statp->_mark, sizeof(statp->_mark)) < 0) {
@@ -825,6 +837,7 @@ send_vc(res_state statp, struct __res_params* params,
 				return -1;
 			}
 		}
+#endif
 		errno = 0;
 		if (random_bind(statp->_vcsock,nsap->sa_family) < 0) {
 			*terrno = errno;
@@ -1104,6 +1117,7 @@ send_dg(res_state statp, struct __res_params* params,
 		}
 
 		fchown(EXT(statp).nssocks[ns], AID_DNS, -1);
+#if defined(SO_MARK)
 		if (statp->_mark != MARK_UNSET) {
 			if (setsockopt(EXT(statp).nssocks[ns], SOL_SOCKET,
 					SO_MARK, &(statp->_mark), sizeof(statp->_mark)) < 0) {
@@ -1111,6 +1125,7 @@ send_dg(res_state statp, struct __res_params* params,
 				return -1;
 			}
 		}
+#endif
 #ifndef CANNOT_CONNECT_DGRAM
 		/*
 		 * On a 4.3BSD+ machine (client and server,

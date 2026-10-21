@@ -40,7 +40,9 @@
 #include <arpa/nameser.h>
 #include <net/if.h>
 #include <netdb.h>
+#if !defined(__FreeBSD__)
 #include <linux/if.h>
+#endif
 
 #include <arpa/inet.h>
 #include "resolv_private.h"

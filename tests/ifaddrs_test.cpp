@@ -21,15 +21,22 @@
 #include <arpa/inet.h>
 #include <dirent.h>
 #include <fcntl.h>
+#if !defined(__FreeBSD__)
 #include <net/ethernet.h>
+#endif
 #include <net/if.h>
+#if defined(__FreeBSD__)
+#include <net/if_dl.h>
+#endif
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/ioctl.h>
 
+#if !defined(__FreeBSD__)
 // (glibc as of 2.37 has redefinitions if you include these before <net/if.h>.)
 #include <linux/if.h>
 #include <linux/if_packet.h>
+#endif
 
 #include <algorithm>
 #include <map>
@@ -58,7 +65,11 @@ TEST(ifaddrs, getifaddrs_lo) {
     if (addr->ifa_name && strcmp(addr->ifa_name, "lo") == 0) {
       if (addr->ifa_addr && addr->ifa_addr->sa_family == AF_INET) lo_inet4 = addr;
       else if (addr->ifa_addr && addr->ifa_addr->sa_family == AF_INET6) lo_inet6 = addr;
+#if defined(__FreeBSD__)
+      else if (addr->ifa_addr && addr->ifa_addr->sa_family == AF_LINK) lo_packet = addr;
+#else
       else if (addr->ifa_addr && addr->ifa_addr->sa_family == AF_PACKET) lo_packet = addr;
+#endif
     }
   }
 
@@ -74,8 +85,14 @@ TEST(ifaddrs, getifaddrs_lo) {
 
   // Does the AF_PACKET entry look right?
   ASSERT_TRUE(lo_packet != nullptr);
+#if defined(__FreeBSD__)
+  // FreeBSD gives a link-level address as AF_LINK, and its loopback has none.
+  const sockaddr_dl* sa_dl = reinterpret_cast<const sockaddr_dl*>(lo_packet->ifa_addr);
+  ASSERT_EQ(0, sa_dl->sdl_alen);
+#else
   const sockaddr_ll* sa_ll = reinterpret_cast<const sockaddr_ll*>(lo_packet->ifa_addr);
   ASSERT_EQ(6, sa_ll->sll_halen);
+#endif
 
   freeifaddrs(addrs);
 }
@@ -92,7 +109,12 @@ TEST(ifaddrs, getifaddrs_interfaces) {
           addr->ifa_broadaddr ? addr->ifa_broadaddr->sa_family :
           AF_UNSPEC;
 
+#if defined(__FreeBSD__)
+      // FreeBSD gives each link as AF_LINK.
+      if (family == AF_LINK || family == AF_UNSPEC) {
+#else
       if (family == AF_PACKET || family == AF_UNSPEC) {
+#endif
         ifaddrs_socks.push_back(std::string(addr->ifa_name));
       }
     }
@@ -140,6 +162,15 @@ static void CheckAddressIsInSet(const std::string& if_name, bool unicast,
     // For non-unicast, the specific ioctl to use depends on whether the IFF_BROADCAST flag is set.
     ASSERT_EQ(0, ioctl(fd, SIOCGIFFLAGS, &ifr)) << if_name << ' ' << strerror(errno);
     request = ((ifr.ifr_flags & IFF_BROADCAST) != 0) ? SIOCGIFBRDADDR : SIOCGIFDSTADDR;
+#if defined(__FreeBSD__)
+    // FreeBSD gives a destination address only for a point-to-point link.
+    if ((ifr.ifr_flags & (IFF_BROADCAST | IFF_POINTOPOINT)) == 0) {
+      ASSERT_EQ(-1, ioctl(fd, request, &ifr)) << if_name;
+      ASSERT_ERRNO(EINVAL);
+      // Such a link has its own address as the destination entry.
+      request = SIOCGIFADDR;
+    }
+#endif
   }
 
   ASSERT_EQ(0, ioctl(fd, request, &ifr)) << if_name << ' ' << strerror(errno);
@@ -180,6 +211,18 @@ TEST(ifaddrs, getifaddrs_INET) {
   for (const auto& it : broad_addrs) CheckAddressIsInSet(it.first, false, it.second);
 }
 
+#if defined(__FreeBSD__)
+static void print_sockaddr_dl(const char* what, const sockaddr* p) {
+  const sockaddr_dl* s = reinterpret_cast<const sockaddr_dl*>(p);
+  const unsigned char* a = reinterpret_cast<const unsigned char*>(LLADDR(s));
+  printf("\t\t%s\t", what);
+  for (int i = 0; i < s->sdl_alen; ++i) {
+    if (i > 0) printf(":");
+    printf("%02X", a[i]);
+  }
+  printf(" (%d bytes)\n", s->sdl_alen);
+}
+#else
 static void print_sockaddr_ll(const char* what, const sockaddr* p) {
   const sockaddr_ll* s = reinterpret_cast<const sockaddr_ll*>(p);
   printf("\t\t%s\t", what);
@@ -189,6 +232,7 @@ static void print_sockaddr_ll(const char* what, const sockaddr* p) {
   }
   printf(" (%d bytes)\n", s->sll_halen);
 }
+#endif
 
 static void print_sockaddr_inet(const char* what, const sockaddr* addr) {
   char host[NI_MAXHOST];
@@ -206,7 +250,11 @@ static void print_sockaddr_inet(const char* what, const sockaddr* addr) {
 static const char* FamilyToName(int family) {
   if (family == AF_INET) return "AF_INET";
   if (family == AF_INET6) return "AF_INET6";
+#if defined(__FreeBSD__)
+  if (family == AF_LINK) return "AF_LINK";
+#else
   if (family == AF_PACKET) return "AF_PACKET";
+#endif
   if (family == AF_UNSPEC) return "AF_UNSPEC";
   return "?";
 }
@@ -218,11 +266,17 @@ static std::string FlagsToString(short flags) {
   if ((flags & IFF_DEBUG) != 0) result += " DEBUG";
   if ((flags & IFF_LOOPBACK) != 0) result += " LOOPBACK";
   if ((flags & IFF_POINTOPOINT) != 0) result += " POINTOPOINT";
+#if !defined(__FreeBSD__)
   if ((flags & IFF_NOTRAILERS) != 0) result += " NOTRAILERS";
+#endif
   if ((flags & IFF_RUNNING) != 0) result += " RUNNING";
   if ((flags & IFF_NOARP) != 0) result += " NOARP";
   if ((flags & IFF_PROMISC) != 0) result += " PROMISC";
   if ((flags & IFF_ALLMULTI) != 0) result += " ALLMULTI";
+#if defined(__FreeBSD__)
+  // The other flags of Linux do not exist on FreeBSD.
+  if ((flags & IFF_MULTICAST) != 0) result += " MULTICAST";
+#else
   if ((flags & IFF_MASTER) != 0) result += " MASTER";
   if ((flags & IFF_SLAVE) != 0) result += " SLAVE";
   if ((flags & IFF_MULTICAST) != 0) result += " MULTICAST";
@@ -232,6 +286,7 @@ static std::string FlagsToString(short flags) {
   if ((flags & IFF_LOWER_UP) != 0) result += " LOWER_UP";
   if ((flags & IFF_DORMANT) != 0) result += " DORMANT";
   if ((flags & IFF_ECHO) != 0) result += " ECHO";
+#endif
   return result;
 }
 
@@ -249,9 +304,14 @@ TEST(ifaddrs, dump) {
            ifa->ifa_name, FamilyToName(family), family,
            ifa->ifa_flags, FlagsToString(ifa->ifa_flags).c_str());
 
+#if defined(__FreeBSD__)
+    if (family == AF_LINK) {
+      if (ifa->ifa_addr) print_sockaddr_dl("hwaddr", ifa->ifa_addr);
+#else
     if (family == AF_PACKET) {
       if (ifa->ifa_addr) print_sockaddr_ll("hwaddr", ifa->ifa_addr);
       if (ifa->ifa_broadaddr) print_sockaddr_ll("hwbroad", ifa->ifa_addr);
+#endif
     } else if (family == AF_INET || family == AF_INET6) {
       if (ifa->ifa_addr) print_sockaddr_inet("address", ifa->ifa_addr);
       if (ifa->ifa_broadaddr && (ifa->ifa_flags & (IFF_BROADCAST | IFF_POINTOPOINT)) != 0) {

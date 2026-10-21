@@ -65,6 +65,9 @@ struct nlmsghdr {
 #define	NLM_F_MULTI		0x02
 #define	NLM_F_ACK		0x04
 #define	NLM_F_ECHO		0x08
+#define	NLM_F_ROOT		0x100
+#define	NLM_F_MATCH		0x200
+#define	NLM_F_DUMP		(NLM_F_ROOT | NLM_F_MATCH)
 
 /* Types of nlmsg_type. */
 #define	NLMSG_NOOP		0x1
@@ -77,6 +80,26 @@ struct nlmsgerr {
 	int		error;
 	struct nlmsghdr	msg;
 };
+
+/*
+ * Item helpers from FreeBSD's <netlink/netlink.h>.  A message and an
+ * attribute are both items: a header that holds the length, then the data,
+ * on four-byte boundaries.  That header carries the license above and these
+ * notices:
+ *
+ * Copyright (c) 2021 Ng Peng Nam Sean
+ * Copyright (c) 2022 Alexander V. Chernikov <melifaro@FreeBSD.org>
+ */
+#define	NL_ITEM_ALIGN_SIZE	sizeof(uint32_t)
+#define	NL_ITEM_ALIGN(_len)	__builtin_align_up(_len, NL_ITEM_ALIGN_SIZE)
+#define	NL_ITEM_DATA(_ptr, _off) \
+	((void *)((char *)(_ptr) + (_off)))
+#define	NL_ITEM_OK(_ptr, _len, _hlen, _LEN_M) \
+	((_len) >= (_hlen) && _LEN_M(_ptr) >= (_hlen) && _LEN_M(_ptr) <= (_len))
+#define	NL_ITEM_NEXT(_ptr, _LEN_M) \
+	((__typeof(_ptr))((char *)(_ptr) + _LEN_M(_ptr)))
+#define	NL_ITEM_ITER(_ptr, _len, _LEN_MACRO) \
+	((_len) -= _LEN_MACRO(_ptr), NL_ITEM_NEXT(_ptr, _LEN_MACRO))
 
 /* The macros of FreeBSD: the lengths are unsigned. */
 #define	NLMSG_ALIGNTO		sizeof(uint32_t)
