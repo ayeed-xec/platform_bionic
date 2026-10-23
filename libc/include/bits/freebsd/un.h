@@ -37,6 +37,8 @@
 #include <bits/sa_family_t.h>
 
 #define	SUNPATHLEN	104
+/* The Linux name of the sun_path length, which BoringSSL uses. */
+#define	UNIX_PATH_MAX	SUNPATHLEN
 
 struct sockaddr_un {
 	unsigned char	sun_len;
