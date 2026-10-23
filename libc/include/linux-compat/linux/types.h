@@ -26,27 +26,8 @@
  */
 
 /*
- * The fixed-width integer types of <linux/types.h>, on the C99 types.
- * The __le and __be names only say the byte order of the value; the
- * program converts it.
+ * Programs include <linux/types.h>, but none of them uses one of its
+ * types, so the header defines none.
  */
 
 #pragma once
-
-#include <stdint.h>
-
-typedef int8_t		__s8;
-typedef uint8_t		__u8;
-typedef int16_t		__s16;
-typedef uint16_t	__u16;
-typedef int32_t		__s32;
-typedef uint32_t	__u32;
-typedef int64_t		__s64;
-typedef uint64_t	__u64;
-
-typedef uint16_t	__le16;
-typedef uint16_t	__be16;
-typedef uint32_t	__le32;
-typedef uint32_t	__be32;
-typedef uint64_t	__le64;
-typedef uint64_t	__be64;

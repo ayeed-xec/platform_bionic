@@ -85,10 +85,7 @@ struct statfs64 { __STATFS64_BODY };
 #define _STATFS_F_FRSIZE
 #define _STATFS_F_FLAGS
 
-/*
- * Pull in the kernel magic numbers.  On FreeBSD they are the Linux values
- * that statfs() reports, in linux-compat.
- */
+/* Pull in the kernel magic numbers. */
 #include <linux/magic.h>
 /* Add in ones that we had historically that aren't in the uapi header. */
 #define BEFS_SUPER_MAGIC      0x42465331
