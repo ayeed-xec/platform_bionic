@@ -41,9 +41,6 @@
 
 #include <bits/freebsd/statfs.h>
 
-/* Linux sets this flag in f_flags to show that the field is valid. */
-#define	ST_VALID		0x0020
-
 /* The magic numbers that <sys/vfs.h> does not name. */
 #define	UFS_MAGIC		0x00011954
 #define	ZFS_SUPER_MAGIC		0x2fc12fc1
@@ -93,7 +90,6 @@ convert(const struct __freebsd_statfs *src, struct statfs *dst)
 	dst->f_fsid.__val[0] = src->f_fsid[0];
 	dst->f_fsid.__val[1] = src->f_fsid[1];
 	dst->f_namelen = src->f_namemax;
-	dst->f_flags = ST_VALID;
 	if (src->f_flags & __FREEBSD_MNT_RDONLY)
 		dst->f_flags |= ST_RDONLY;
 	if (src->f_flags & __FREEBSD_MNT_NOSUID)
