@@ -35,7 +35,15 @@
 
 #include <sys/cdefs.h>
 #include <sys/ioctl.h>
-/* The MS_* flags of mount(2) are not defined on FreeBSD yet. */
+/*
+ * The MS_* flags of mount(2) that FreeBSD's Linux emulation maps
+ * (sys/compat/linux/linux_file.h).  bionic-freebsd has no mount() yet.
+ */
+#define MS_RDONLY 0x0001
+#define MS_NOSUID 0x0002
+#define MS_NODEV 0x0004
+#define MS_NOEXEC 0x0008
+#define MS_REMOUNT 0x0020
 
 __BEGIN_DECLS
 

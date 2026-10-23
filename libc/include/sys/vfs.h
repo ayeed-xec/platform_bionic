@@ -85,27 +85,11 @@ struct statfs64 { __STATFS64_BODY };
 #define _STATFS_F_FRSIZE
 #define _STATFS_F_FLAGS
 
-#if defined(__FreeBSD__)
 /*
- * bionic-freebsd has no Linux uapi header. statfs() reports these Linux
- * magic numbers for the FreeBSD file system types, as FreeBSD's Linux
- * emulation does (sys/compat/linux/linux_stats.c).
+ * Pull in the kernel magic numbers.  On FreeBSD they are the Linux values
+ * that statfs() reports, in linux-compat.
  */
-#define CODA_SUPER_MAGIC      0x73757245
-#define EXT2_SUPER_MAGIC      0xEF53
-#define HPFS_SUPER_MAGIC      0xF995E849
-#define ISOFS_SUPER_MAGIC     0x9660
-#define MSDOS_SUPER_MAGIC     0x4D44
-#define NCP_SUPER_MAGIC       0x564C
-#define NFS_SUPER_MAGIC       0x6969
-#define NTFS_SB_MAGIC         0x5346544E
-#define PROC_SUPER_MAGIC      0x9FA0
-#define SYSFS_MAGIC           0x62656572
-#define TMPFS_MAGIC           0x01021994
-#else
-/* Pull in the kernel magic numbers. */
 #include <linux/magic.h>
-#endif
 /* Add in ones that we had historically that aren't in the uapi header. */
 #define BEFS_SUPER_MAGIC      0x42465331
 #define BFS_MAGIC             0x1BADFACE
