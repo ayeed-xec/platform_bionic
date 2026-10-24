@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
+#include <errno.h>
 #include <fcntl.h>
+#include <string.h>
 #include <sys/mman.h>
 #include <sys/user.h>
 #include <sys/types.h>
@@ -217,6 +219,49 @@ TEST(sys_mman, posix_madvise_POSIX_MADV_DONTNEED) {
   for (int i = 0; i < static_cast<int>(pagesize / sizeof(int)); ++i) {
     ASSERT_EQ(i, *int_ptr++);
   }
+
+  ASSERT_EQ(0, munmap(map, pagesize));
+}
+
+// Checks in a child of fork_fn that each byte of the page is expected.
+static void AssertChildSeesPage(pid_t (*fork_fn)(), const unsigned char* page, size_t pagesize,
+                                unsigned char expected) {
+  pid_t pid = fork_fn();
+  ASSERT_NE(-1, pid);
+  if (pid == 0) {
+    for (size_t i = 0; i < pagesize; ++i) {
+      if (page[i] != expected) _exit(1);
+    }
+    _exit(0);
+  }
+  AssertChildExited(pid, 0);
+}
+
+TEST(sys_mman, madvise_MADV_WIPEONFORK) {
+  size_t pagesize = sysconf(_SC_PAGESIZE);
+  void* map = mmap(nullptr, pagesize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+  ASSERT_NE(MAP_FAILED, map);
+  unsigned char* page = static_cast<unsigned char*>(map);
+  memset(page, 0xff, pagesize);
+
+  ASSERT_EQ(0, madvise(map, pagesize, MADV_WIPEONFORK));
+  ASSERT_EQ(0xff, page[0]);
+  AssertChildSeesPage(fork, page, pagesize, 0);
+#if defined(__BIONIC__)
+  // _Fork() runs no atfork handlers, so only the kernel can clear the page.
+  AssertChildSeesPage(_Fork, page, pagesize, 0);
+#endif
+  ASSERT_EQ(0xff, page[pagesize - 1]);
+
+  ASSERT_EQ(0, madvise(map, pagesize, MADV_KEEPONFORK));
+  AssertChildSeesPage(fork, page, pagesize, 0xff);
+#if defined(__BIONIC__)
+  AssertChildSeesPage(_Fork, page, pagesize, 0xff);
+#endif
+
+  errno = 0;
+  ASSERT_EQ(-1, madvise(map, pagesize, -1));
+  ASSERT_ERRNO(EINVAL);
 
   ASSERT_EQ(0, munmap(map, pagesize));
 }
