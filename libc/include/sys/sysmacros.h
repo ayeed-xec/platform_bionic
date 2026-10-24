@@ -37,6 +37,19 @@
 
 __BEGIN_DECLS
 
+#if defined(__FreeBSD__)
+/* The FreeBSD encoding of dev_t (sys/types.h), which stat(2) gives. */
+#define makedev(__major, __minor) \
+  ( \
+    (((__major) & 0xffffff00ULL) << 32) | (((__major) & 0xffULL) << 8) | \
+    (((__minor) & 0xff00ULL) << 24) | (((__minor) & 0xffff00ffULL)) \
+  )
+#define major(__dev) \
+  ((unsigned) ((((unsigned long long) (__dev) >> 32) & 0xffffff00) | \
+    (((__dev) >> 8) & 0xff)))
+#define minor(__dev) \
+  ((unsigned) ((((__dev) >> 24) & 0xff00) | ((__dev) & 0xffff00ff)))
+#else
 /** Combines `major` and `minor` into a device number. */
 #define makedev(__major, __minor) \
   ( \
@@ -51,5 +64,6 @@ __BEGIN_DECLS
 /** Extracts the minor part of a device number. */
 #define minor(__dev) \
   ((unsigned) ((((__dev) >> 12) & 0xffffff00) | ((__dev) & 0xff)))
+#endif
 
 __END_DECLS

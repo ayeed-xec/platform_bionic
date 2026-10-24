@@ -32,7 +32,10 @@
 #include <sys/cdefs.h>
 #include <sys/types.h>
 
+/* Android code uses no UDP socket option of <linux/udp.h> yet. */
+#if !defined(__FreeBSD__)
 #include <linux/udp.h>
+#endif
 
 __BEGIN_DECLS
 

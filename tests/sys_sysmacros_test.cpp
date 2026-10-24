@@ -18,14 +18,21 @@
 
 #include <gtest/gtest.h>
 
+#if defined(__FreeBSD__)
+// FreeBSD's dev_t encoding, which its stat(2) gives.
+static constexpr unsigned long long kDev = 0x123456ccaabb78ddULL;
+#else
+static constexpr unsigned long long kDev = 0x12345aabbcc678ddULL;
+#endif
+
 TEST(sys_sysmacros, makedev) {
-  ASSERT_EQ(0x12345aabbcc678ddULL, makedev(0x12345678, 0xaabbccdd));
+  ASSERT_EQ(kDev, makedev(0x12345678, 0xaabbccdd));
 }
 
 TEST(sys_sysmacros, major) {
-  ASSERT_EQ(0x12345678UL, major(0x12345aabbcc678dd));
+  ASSERT_EQ(0x12345678UL, major(kDev));
 }
 
 TEST(sys_sysmacros, minor) {
-  ASSERT_EQ(0xaabbccddUL, minor(0x12345aabbcc678dd));
+  ASSERT_EQ(0xaabbccddUL, minor(kDev));
 }

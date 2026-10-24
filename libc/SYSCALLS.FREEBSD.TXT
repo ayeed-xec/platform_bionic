@@ -66,6 +66,7 @@ fstatat64|fstatat:fstatat(int, const char*, struct stat*, int)  arm64  N  newfst
 __statfs:statfs(const char*, struct __freebsd_statfs*)  arm64  N  statfs
 __fstatfs:fstatfs(int, struct __freebsd_statfs*)    arm64  N  fstatfs
 __unmount:unmount(const char*, int)                 arm64  N  umount2
+__nmount:nmount(struct iovec*, unsigned int, int)   arm64  N  mount
 __dup:dup(int)                                      arm64  E  dup
 __pipe2:pipe2(int*, int)                            arm64  E  pipe2
 unlinkat(int, const char*, int)                     arm64  E  unlinkat
@@ -90,6 +91,7 @@ fchmodat(int, const char*, mode_t, int)             arm64  E  fchmodat
 fchmod(int, mode_t)                                 arm64  E  fchmod
 fchown(int, uid_t, gid_t)                           arm64  E  fchown
 fchownat(int, const char*, uid_t, gid_t, int)       arm64  E  fchownat
+fchflags(int, unsigned long)                        arm64  F  -
 __getcwd(char*, size_t)                             arm64  N  getcwd
 execve(const char*, char* const*, char* const*)     arm64  E  execve
 __fexecve:fexecve(int, char* const*, char* const*)  arm64  F  -
@@ -103,9 +105,23 @@ fchdir(int)                                         arm64  E  fchdir
 fsync(int)                                          arm64  E  fsync
 fdatasync(int)                                      arm64  E  fdatasync
 syncfs(int)                                         arm64  E  syncfs
+flock(int, int)                                     arm64  E  flock
 close_range(unsigned int, unsigned int, int)        arm64  E  close_range
 copy_file_range(int, off_t*, int, off_t*, size_t, unsigned int)  arm64  E  copy_file_range
 renameat2(int, const char*, int, const char*, unsigned int)  arm64  E  renameat2
+linkat(int, const char*, int, const char*, int)     arm64  E  linkat
+mknodat(int, const char*, mode_t, dev_t)            arm64  E  mknodat
+chroot(const char*)                                 arm64  E  chroot
+sync()                                              arm64  E  sync
+utimensat(int, const char*, const struct timespec*, int)  arm64  E  utimensat
+# On Linux futimens() is utimensat() with no path; FreeBSD has the call.
+futimens(int, const struct timespec*)               arm64  N  utimensat
+# posix_fallocate(2) returns a FreeBSD errno; freebsd/posix_fallocate.c
+# maps it.
+__posix_fallocate:posix_fallocate(int, off_t, off_t)  arm64  N  fallocate
+# freebsd/swap.c maps the flags of swapon() and swapoff().
+__swapon:swapon(const char*)                        arm64  E  swapon
+__swapoff:swapoff(const char*, unsigned int)        arm64  E  swapoff
 
 # Memory.
 __mmap:mmap(void*, size_t, int, int, int, off_t)    arm64  E  mmap
@@ -116,6 +132,7 @@ __madvise:madvise(void*, size_t, int)               arm64  E  madvise
 mlock(const void*, size_t)                          arm64  E  mlock
 mincore(void*, size_t, unsigned char*)              arm64  E  mincore
 munlock(const void*, size_t)                        arm64  E  munlock
+mlockall(int)                                       arm64  E  mlockall
 minherit(void*, size_t, int)                        arm64  F  -
 __shm_open2:shm_open2(const char*, int, mode_t, int, const char*)  arm64  N  memfd_create
 __sysarch:sysarch(int, void*)                       arm64  F  -
@@ -145,7 +162,7 @@ __getpriority:getpriority(int, id_t)                arm64  N  getpriority
 issetugid()                                         arm64  F  -
 __procctl:procctl(int, id_t, int, void*)            arm64  F  -
 getrlimit|getrlimit64(int, struct rlimit*)          arm64  E  getrlimit
-setrlimit|setrlimit64(int, const struct rlimit*)    arm64  E  setrlimit
+__setrlimit:setrlimit(int, const struct rlimit*)    arm64  E  setrlimit
 __setpriority:setpriority(int, id_t, int)           arm64  N  setpriority
 __sysctl|sysctl(const int*, unsigned int, void*, size_t*, const void*, size_t)  arm64  F  -
 __sysctlbyname(const char*, size_t, void*, size_t*, const void*, size_t)  arm64  F  -
@@ -170,8 +187,8 @@ __sched_getparam:sched_getparam(pid_t, struct sched_param*)  arm64  E  sched_get
 __sched_setparam:sched_setparam(pid_t, const struct sched_param*)  arm64  E  sched_setparam
 __sched_setscheduler:sched_setscheduler(pid_t, int, const struct sched_param*)  arm64  E  sched_setscheduler
 __sched_rr_get_interval:sched_rr_get_interval(pid_t, struct timespec*)  arm64  E  sched_rr_get_interval
-sched_get_priority_max(int)                         arm64  E  sched_get_priority_max
-sched_get_priority_min(int)                         arm64  E  sched_get_priority_min
+__sched_get_priority_max:sched_get_priority_max(int)  arm64  E  sched_get_priority_max
+__sched_get_priority_min:sched_get_priority_min(int)  arm64  E  sched_get_priority_min
 
 # Sockets.
 __socket:socket(int, int, int)                      arm64  E  socket
@@ -208,6 +225,7 @@ __clock_getres:clock_getres(clockid_t, struct timespec*)    arm64  E  clock_getr
 __clock_nanosleep:clock_nanosleep(clockid_t, int, const struct timespec*, struct timespec*)  arm64  E  clock_nanosleep
 __nanosleep:nanosleep(const struct timespec*, struct timespec*)  arm64  E  nanosleep
 clock_settime(clockid_t, const struct timespec*)    arm64  E  clock_settime
+settimeofday(const struct timeval*, const struct timezone*)  arm64  E  settimeofday
 __clock_getcpuclockid2:clock_getcpuclockid2(id_t, int, clockid_t*)  arm64  F  -
 setitimer(int, const struct itimerval*, struct itimerval*)  arm64  E  setitimer
 getitimer(int, struct itimerval*)                   arm64  E  getitimer
@@ -226,3 +244,8 @@ epoll_ctl(int, int, int, struct epoll_event*)       arm64  E  epoll_ctl
 __epoll_pwait2:epoll_pwait2(int, struct epoll_event*, int, const struct timespec*, const sigset_t*)  arm64  E  epoll_pwait2
 __inotify_add_watch_at:inotify_add_watch_at(int, int, const char*, uint32_t)  arm64  N  inotify_add_watch
 inotify_rm_watch(int, uint32_t)                     arm64  E  inotify_rm_watch
+
+# Kernel modules.
+kldload(const char*)                                arm64  F  -
+kldfind(const char*)                                arm64  F  -
+kldunloadf(int, int)                                arm64  F  -

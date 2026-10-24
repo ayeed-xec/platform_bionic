@@ -27,7 +27,9 @@
 
 /*
  * sched_getparam(2), sched_setparam(2), sched_getscheduler(2),
- * sched_setscheduler(2) and sched_rr_get_interval(2) for bionic-freebsd.
+ * sched_setscheduler(2), sched_rr_get_interval(2),
+ * sched_get_priority_max(2) and sched_get_priority_min(2) for
+ * bionic-freebsd.
  *
  * The FreeBSD system calls take a thread id, as on Linux, and
  * sched_setscheduler(2) takes SCHED_RESET_ON_FORK.  Each function makes
@@ -48,8 +50,9 @@
  * is 1.  rtprio_thread(2) takes only a thread id or 0, and no
  * SCHED_RESET_ON_FORK.  The kernel scheduler calls do not know the idle
  * class: sched_getscheduler() reports SCHED_OTHER for such a thread, and
- * sched_setparam() makes it SCHED_OTHER.  FreeBSD has no SCHED_BATCH, so
- * it fails with EINVAL.
+ * sched_setparam() makes it SCHED_OTHER.  Its only priority is 0, as on
+ * Linux, so sched_get_priority_min() and sched_get_priority_max() give 0
+ * for it.  FreeBSD has no SCHED_BATCH, so it fails with EINVAL.
  */
 
 #include <sys/types.h>
@@ -57,6 +60,8 @@
 #include <errno.h>
 #include <sched.h>
 #include <time.h>
+
+#include "stubs.h"
 
 /* FreeBSD <sys/rtprio.h> and <sys/priority.h> values. */
 #define	RTP_SET			1
@@ -148,4 +153,20 @@ sched_rr_get_interval(pid_t id, struct timespec *interval)
 	if (id < 0)
 		return (einval());
 	return (__sched_rr_get_interval(id, interval));
+}
+
+int
+sched_get_priority_max(int policy)
+{
+	if (policy == SCHED_IDLE)
+		return (0);
+	return (__sched_get_priority_max(policy));
+}
+
+int
+sched_get_priority_min(int policy)
+{
+	if (policy == SCHED_IDLE)
+		return (0);
+	return (__sched_get_priority_min(policy));
 }

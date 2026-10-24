@@ -37,9 +37,16 @@
  *			count of unread bytes.  ENOSYS.
  * mseal		Nothing stops later mprotect(2) or munmap(2) calls on a
  *			range.  ENOSYS, which callers take as an older kernel.
+ * unshare, setns	FreeBSD has no namespaces.  EINVAL, as on a kernel
+ *			built without them; unshare() with no flag does nothing.
+ *			unshare() also gives EINVAL for CLONE_FS, CLONE_FILES
+ *			and CLONE_SYSVSEM, which each Linux kernel takes.
  */
 
+#define	_GNU_SOURCE	/* unshare() and setns() of <sched.h> */
+
 #include <errno.h>
+#include <sched.h>
 #include <stdint.h>
 #include <sys/types.h>
 
@@ -81,5 +88,23 @@ klogctl(int type, char *buf, int len)
 	(void)buf;
 	(void)len;
 	errno = ENOSYS;
+	return (-1);
+}
+
+int
+unshare(int flags)
+{
+	if (flags == 0)
+		return (0);
+	errno = EINVAL;
+	return (-1);
+}
+
+int
+setns(int fd, int nstype)
+{
+	(void)fd;
+	(void)nstype;
+	errno = EINVAL;
 	return (-1);
 }

@@ -31,5 +31,11 @@
 #include <sys/cdefs.h>
 #include <sys/socket.h>
 #include <linux/route.h>
+/*
+ * FreeBSD keeps the IPv6 names in <netinet/in.h>, and Android code uses no
+ * IPv6 route structure yet.
+ */
+#if !defined(__FreeBSD__)
 #include <linux/in6.h>
 #include <linux/ipv6_route.h>
+#endif

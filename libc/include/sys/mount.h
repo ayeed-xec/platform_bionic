@@ -35,7 +35,7 @@
 
 #include <sys/cdefs.h>
 #include <sys/ioctl.h>
-/* The MS_* flags of mount(2) are not defined on FreeBSD yet. */
+#include <linux/fs.h>
 
 __BEGIN_DECLS
 

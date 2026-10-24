@@ -74,6 +74,10 @@
 #define	UTIME_NOW	-1
 #define	UTIME_OMIT	-2
 
+#define	UF_NODUMP	0x00000001
+#define	SF_IMMUTABLE	0x00020000
+#define	SF_APPEND	0x00040000
+
 #define	__STAT_BODY \
 	dev_t		st_dev; \
 	ino_t		st_ino; \

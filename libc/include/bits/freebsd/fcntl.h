@@ -26,8 +26,8 @@
  */
 
 /*
- * open(2), fcntl(2) and *at(2) values of the FreeBSD kernel ABI, from
- * FreeBSD sys/sys/fcntl.h.  abi_check.c checks them.
+ * open(2), fcntl(2), flock(2) and *at(2) values of the FreeBSD kernel ABI,
+ * from FreeBSD sys/sys/fcntl.h.  abi_check.c checks them.
  */
 
 #pragma once
@@ -104,6 +104,11 @@
 #define	AT_REMOVEDIR		0x0800
 #define	AT_RESOLVE_BENEATH	0x2000
 #define	AT_EMPTY_PATH		0x4000
+
+#define	LOCK_SH			0x01
+#define	LOCK_EX			0x02
+#define	LOCK_NB			0x04
+#define	LOCK_UN			0x08
 
 #define	POSIX_FADV_NORMAL	0
 #define	POSIX_FADV_RANDOM	1

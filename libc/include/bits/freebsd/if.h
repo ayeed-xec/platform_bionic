@@ -131,3 +131,18 @@ struct ifconf {
 };
 #define	ifc_buf		ifc_ifcu.ifcu_buf
 #define	ifc_req		ifc_ifcu.ifcu_req
+
+struct ifaliasreq {
+	char			ifra_name[IFNAMSIZ];
+	struct sockaddr		ifra_addr;
+	struct sockaddr		ifra_broadaddr;
+	struct sockaddr		ifra_mask;
+	int			ifra_vhid;
+};
+
+struct ifdrv {
+	char			ifd_name[IFNAMSIZ];
+	unsigned long		ifd_cmd;
+	size_t			ifd_len;
+	void			*ifd_data;
+};

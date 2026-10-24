@@ -32,7 +32,10 @@
 #include <sys/cdefs.h>
 #include <sys/types.h>
 
+/* Android code uses no name of <linux/if_ether.h> on FreeBSD yet. */
+#if !defined(__FreeBSD__)
 #include <linux/if_ether.h>
+#endif
 
 __BEGIN_DECLS
 

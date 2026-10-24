@@ -275,6 +275,13 @@ int getresgid(gid_t* _Nonnull __rgid, gid_t* _Nonnull __egid, gid_t* _Nonnull __
  * information. A FreeBSD-only API, not part of the NDK.
  */
 int issetugid(void);
+
+/**
+ * [fchflags(2)](https://man.freebsd.org/cgi/man.cgi?query=fchflags&sektion=2)
+ * sets the flags of the file `__fd`, which stat() gives in st_flags. A
+ * FreeBSD-only API, not part of the NDK.
+ */
+int fchflags(int __fd, unsigned long __flags);
 #endif
 
 char* _Nullable getlogin(void);
